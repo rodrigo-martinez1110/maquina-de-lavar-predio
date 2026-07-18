@@ -1,4 +1,5 @@
 import type { ReservationWindow } from "../domain/reservations";
+import { availableMinutesFromWeeklyBalance, weekStartForReservation } from "../domain/weekly-balances";
 import { createServiceSupabaseClient } from "../supabase/server";
 
 export async function findReservationConflicts(window: ReservationWindow): Promise<Array<{ id: string }>> {
@@ -38,4 +39,19 @@ export async function insertReservation(row: {
   if (error) throw error;
 
   return data;
+}
+
+export async function getAvailableReservationMinutes(input: { apartmentId: string; startIso: string }): Promise<number> {
+  const supabase = createServiceSupabaseClient();
+  const weekStart = weekStartForReservation(input.startIso);
+  const { data, error } = await supabase
+    .from("weekly_balances")
+    .select("quota_minutes, received_minutes, sent_minutes, reserved_minutes, refunded_minutes, penalty_minutes")
+    .eq("apartment_id", input.apartmentId)
+    .eq("week_start", weekStart)
+    .maybeSingle();
+
+  if (error) throw error;
+
+  return availableMinutesFromWeeklyBalance(data);
 }

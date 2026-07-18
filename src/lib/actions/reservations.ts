@@ -1,11 +1,17 @@
-"use server";
-
 import { revalidatePath } from "next/cache";
 import { getApartmentSession } from "../auth/apartment-session";
 import { assertReservationAllowed, type ReservationWindow } from "../domain/reservations";
 import { minutesBetween } from "../domain/time";
+export { availableMinutesFromWeeklyBalance } from "../domain/weekly-balances";
 
 type ReservationKind = "wash" | "dry" | "wash_dry" | "custom";
+
+type ReservationAuditMetadata = {
+  kind: ReservationKind;
+  startIso: string;
+  endIso: string;
+  estimatedMinutes: number;
+};
 
 export async function createReservationUseCase(input: {
   apartmentId: string;
@@ -41,25 +47,71 @@ export async function createReservationUseCase(input: {
   return reservation;
 }
 
-export async function createReservationAction(formData: FormData) {
-  const session = await getApartmentSession();
-  if (!session) throw new Error("Sessao expirada");
+export async function createReservationActionUseCase(input: {
+  apartmentId: string;
+  formData: FormData;
+  getAvailableMinutes: (input: { apartmentId: string; startIso: string }) => Promise<number>;
+  findConflicts: (window: ReservationWindow) => Promise<Array<{ id: string }>>;
+  insertReservation: (row: {
+    apartmentId: string;
+    kind: ReservationKind;
+    startIso: string;
+    endIso: string;
+    estimatedMinutes: number;
+  }) => Promise<{ id: string }>;
+  auditReservationCreated: (entry: {
+    apartmentId: string;
+    reservationId: string;
+    metadata: ReservationAuditMetadata;
+  }) => Promise<void>;
+}) {
+  const startIso = String(input.formData.get("startIso") ?? "");
+  const endIso = String(input.formData.get("endIso") ?? "");
+  const kind = String(input.formData.get("kind") ?? "") as ReservationKind;
+  const availableMinutes = await input.getAvailableMinutes({ apartmentId: input.apartmentId, startIso });
+  const estimatedMinutes = minutesBetween(startIso, endIso);
 
-  const startIso = String(formData.get("startIso"));
-  const endIso = String(formData.get("endIso"));
-  const kind = String(formData.get("kind")) as ReservationKind;
-  const availableMinutes = Number(formData.get("availableMinutes"));
-  const { findReservationConflicts, insertReservation } = await import("../repositories/reservations");
-
-  await createReservationUseCase({
-    apartmentId: session.apartmentId,
+  return createReservationUseCase({
+    apartmentId: input.apartmentId,
     kind,
     startIso,
     endIso,
     availableMinutes,
+    findConflicts: input.findConflicts,
+    insertReservation: input.insertReservation,
+    audit: async (_action, reservationId) => {
+      await input.auditReservationCreated({
+        apartmentId: input.apartmentId,
+        reservationId,
+        metadata: {
+          kind,
+          startIso,
+          endIso,
+          estimatedMinutes,
+        },
+      });
+    },
+  });
+}
+
+export async function createReservationAction(formData: FormData) {
+  "use server";
+
+  const session = await getApartmentSession();
+  if (!session) throw new Error("Sessao expirada");
+
+  const { writeReservationCreatedAudit } = await import("../repositories/audit-logs");
+  const { findReservationConflicts, getAvailableReservationMinutes, insertReservation } = await import(
+    "../repositories/reservations"
+  );
+
+  await createReservationActionUseCase({
+    apartmentId: session.apartmentId,
+    formData,
+    getAvailableMinutes: getAvailableReservationMinutes,
     findConflicts: findReservationConflicts,
     insertReservation,
-    audit: async () => undefined,
+    auditReservationCreated: writeReservationCreatedAudit,
   });
 
   revalidatePath("/reservations");
