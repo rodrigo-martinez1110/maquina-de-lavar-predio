@@ -1,4 +1,5 @@
 import { z } from "zod";
+export { parsePublicEnv, publicEnv } from "./public-env";
 
 const EnvSchema = z.object({
   NEXT_PUBLIC_SUPABASE_URL: z.string().url(),
