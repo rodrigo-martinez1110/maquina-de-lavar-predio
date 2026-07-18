@@ -6,12 +6,28 @@ describe("time domain", () => {
     expect(() => assertReservableWindow("2026-07-20T07:00:00-03:00", "2026-07-20T09:00:00-03:00")).not.toThrow();
   });
 
-  it("blocks reservations that end after 23:00", () => {
+  it("reports an end-time error for 23:30 in the reservation civil time", () => {
     expect(() => assertReservableWindow("2026-07-20T22:30:00-03:00", "2026-07-20T23:30:00-03:00")).toThrow("Reservas devem terminar ate 23:00");
   });
 
-  it("blocks reservations before 07:00", () => {
+  it("rejects 06:30 in the reservation civil time", () => {
     expect(() => assertReservableWindow("2026-07-20T06:30:00-03:00", "2026-07-20T07:30:00-03:00")).toThrow("Reservas devem comecar a partir de 07:00");
+  });
+
+  it("allows the 07:00 start boundary", () => {
+    expect(() => assertReservableWindow("2026-07-20T07:00:00-03:00", "2026-07-20T08:00:00-03:00")).not.toThrow();
+  });
+
+  it("allows the 23:00 end boundary", () => {
+    expect(() => assertReservableWindow("2026-07-20T22:00:00-03:00", "2026-07-20T23:00:00-03:00")).not.toThrow();
+  });
+
+  it("blocks reservations that cross into the next local date", () => {
+    expect(() => assertReservableWindow("2026-07-20T22:00:00-03:00", "2026-07-21T00:00:00-03:00")).toThrow("Reservas devem terminar ate 23:00");
+  });
+
+  it("throws a deterministic error for invalid reservation dates", () => {
+    expect(() => assertReservableWindow("invalid", "2026-07-20T09:00:00-03:00")).toThrow("Data invalida");
   });
 
   it("rounds extra usage up to 30 minute blocks", () => {
