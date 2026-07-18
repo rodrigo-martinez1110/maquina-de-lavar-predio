@@ -84,8 +84,62 @@ create table credit_transfer_acceptances (
   from_apartment_id uuid not null references apartments(id),
   to_apartment_id uuid not null references apartments(id),
   minutes integer not null check (minutes > 0),
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  constraint credit_transfer_acceptances_distinct_apartments check (from_apartment_id <> to_apartment_id)
 );
+
+create function validate_credit_transfer_acceptance()
+returns trigger
+language plpgsql
+as $$
+declare
+  parent_kind transfer_kind;
+  parent_apartment_id uuid;
+  parent_total_minutes integer;
+  accepted_minutes integer;
+begin
+  select kind, apartment_id, total_minutes
+  into parent_kind, parent_apartment_id, parent_total_minutes
+  from credit_transfers
+  where id = new.transfer_id
+  for update;
+
+  if not found then
+    raise exception 'credit transfer % does not exist', new.transfer_id
+      using errcode = 'foreign_key_violation';
+  end if;
+
+  if parent_kind = 'offer' then
+    if new.from_apartment_id <> parent_apartment_id or new.to_apartment_id = parent_apartment_id then
+      raise exception 'offer transfer acceptance must send from owner apartment'
+        using errcode = 'check_violation';
+    end if;
+  elsif parent_kind = 'request' then
+    if new.to_apartment_id <> parent_apartment_id or new.from_apartment_id = parent_apartment_id then
+      raise exception 'request transfer acceptance must send to owner apartment'
+        using errcode = 'check_violation';
+    end if;
+  end if;
+
+  select coalesce(sum(minutes), 0)
+  into accepted_minutes
+  from credit_transfer_acceptances
+  where transfer_id = new.transfer_id
+    and id <> new.id;
+
+  if accepted_minutes + new.minutes > parent_total_minutes then
+    raise exception 'credit transfer acceptance minutes exceed transfer total'
+      using errcode = 'check_violation';
+  end if;
+
+  return new;
+end;
+$$;
+
+create trigger validate_credit_transfer_acceptance_before_write
+before insert or update on credit_transfer_acceptances
+for each row
+execute function validate_credit_transfer_acceptance();
 
 create table notifications (
   id uuid primary key default gen_random_uuid(),
