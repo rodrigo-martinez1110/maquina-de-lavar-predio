@@ -23,11 +23,12 @@ as $$
 declare
   v_balance weekly_balances%rowtype;
   v_available_minutes integer;
+  v_duration_seconds numeric;
   v_estimated_minutes integer;
   v_week_start date;
   v_reservation_id uuid;
 begin
-  v_estimated_minutes := (extract(epoch from (p_ends_at - p_starts_at)) / 60)::integer;
+  v_duration_seconds := extract(epoch from (p_ends_at - p_starts_at));
   v_week_start := date_trunc('week', p_starts_at at time zone 'America/Sao_Paulo')::date;
 
   if p_ends_at <= p_starts_at then
@@ -35,10 +36,15 @@ begin
       using errcode = 'P0001';
   end if;
 
-  if not (v_estimated_minutes between 30 and 240) or v_estimated_minutes % 30 <> 0 then
+  if v_duration_seconds < 30 * 60
+    or v_duration_seconds > 240 * 60
+    or mod(v_duration_seconds, 60) <> 0
+    or mod(v_duration_seconds / 60, 30) <> 0 then
     raise exception 'Duracao de reserva invalida'
       using errcode = 'P0001';
   end if;
+
+  v_estimated_minutes := (v_duration_seconds / 60)::integer;
 
   if (p_starts_at at time zone 'America/Sao_Paulo')::date <> (p_ends_at at time zone 'America/Sao_Paulo')::date then
     raise exception 'Reservas devem terminar no mesmo dia'

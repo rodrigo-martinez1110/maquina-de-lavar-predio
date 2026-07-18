@@ -114,10 +114,13 @@ describe("reservation actions", () => {
     expect(sql).toContain("create or replace function create_reservation_with_balance");
     expect(sql).not.toContain("p_estimated_minutes integer");
     expect(sql).not.toContain("p_week_start date");
-    expect(sql).toContain("extract(epoch from (p_ends_at - p_starts_at)) / 60");
+    expect(sql).toContain("v_duration_seconds := extract(epoch from (p_ends_at - p_starts_at))");
+    expect(sql).toContain("v_duration_seconds < 30 * 60");
+    expect(sql).toContain("v_duration_seconds > 240 * 60");
+    expect(sql).toContain("mod(v_duration_seconds, 60)");
+    expect(sql).toContain("mod(v_duration_seconds / 60, 30)");
+    expect(sql).toContain("v_estimated_minutes := (v_duration_seconds / 60)::integer");
     expect(sql).toContain("date_trunc('week', p_starts_at at time zone 'America/Sao_Paulo')::date");
-    expect(sql).toContain("v_estimated_minutes between 30 and 240");
-    expect(sql).toContain("v_estimated_minutes % 30");
     expect(sql).toContain("for update");
     expect(sql).toContain("reserved_minutes = reserved_minutes + v_estimated_minutes");
     expect(sql).toContain("insert into audit_logs");
