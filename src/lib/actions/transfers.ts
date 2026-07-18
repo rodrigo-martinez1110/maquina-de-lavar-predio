@@ -58,11 +58,20 @@ export async function createHourOffer(formData: FormData) {
   const session = await getApartmentSession();
   if (!session) throw new Error("Sessao expirada");
   const { createTransfer } = await import("../repositories/transfers");
-  await createTransfer({
+  const { writeAuditLog } = await import("../repositories/audit-logs");
+  const transfer = await createTransfer({
     apartmentId: session.apartmentId,
     kind: "offer",
     weekStart: String(formData.get("weekStart")),
     totalMinutes: Number(formData.get("minutes")),
+  });
+  await writeAuditLog({
+    actorKind: "apartment",
+    actorId: session.apartmentId,
+    action: "transfer.offer.created",
+    entityType: "credit_transfer",
+    entityId: transfer.id,
+    metadata: { minutes: Number(formData.get("minutes")) },
   });
   revalidatePath("/credits");
 }
@@ -71,11 +80,70 @@ export async function createHourRequest(formData: FormData) {
   const session = await getApartmentSession();
   if (!session) throw new Error("Sessao expirada");
   const { createTransfer } = await import("../repositories/transfers");
-  await createTransfer({
+  const { writeAuditLog } = await import("../repositories/audit-logs");
+  const transfer = await createTransfer({
     apartmentId: session.apartmentId,
     kind: "request",
     weekStart: String(formData.get("weekStart")),
     totalMinutes: Number(formData.get("minutes")),
   });
+  await writeAuditLog({
+    actorKind: "apartment",
+    actorId: session.apartmentId,
+    action: "transfer.request.created",
+    entityType: "credit_transfer",
+    entityId: transfer.id,
+    metadata: { minutes: Number(formData.get("minutes")) },
+  });
+  revalidatePath("/credits");
+}
+
+export async function acceptTransferAction(formData: FormData) {
+  const session = await getApartmentSession();
+  if (!session) throw new Error("Sessao expirada");
+
+  const transferId = String(formData.get("transferId") ?? "");
+  const minutes = Number(formData.get("minutes"));
+  if (!transferId) throw new Error("Transferencia invalida");
+
+  const {
+    findOpenTransferById,
+    insertTransferAcceptance,
+    updateTransferRemaining,
+  } = await import("../repositories/transfers");
+  const { createNotification } = await import("../repositories/notifications");
+  const { writeAuditLog } = await import("../repositories/audit-logs");
+
+  const transfer = await findOpenTransferById(transferId);
+  if (transfer.apartmentId === session.apartmentId) {
+    throw new Error("Nao e possivel aceitar a propria transferencia");
+  }
+
+  await acceptTransferUseCase({
+    transfer,
+    actorApartmentId: session.apartmentId,
+    minutes,
+    insertAcceptance: insertTransferAcceptance,
+    updateTransfer: updateTransferRemaining,
+    notify: async (apartmentId, acceptedMinutes) => {
+      await createNotification({
+        apartmentId,
+        kind: "transfer",
+        title: "Horas transferidas",
+        body: `${acceptedMinutes} minutos foram transferidos para o seu apartamento.`,
+      });
+    },
+    audit: async (acceptedTransferId, acceptedMinutes) => {
+      await writeAuditLog({
+        actorKind: "apartment",
+        actorId: session.apartmentId,
+        action: "transfer.accepted",
+        entityType: "credit_transfer",
+        entityId: acceptedTransferId,
+        metadata: { minutes: acceptedMinutes },
+      });
+    },
+  });
+
   revalidatePath("/credits");
 }

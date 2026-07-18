@@ -29,6 +29,25 @@ export async function createTransfer(input: {
   return data;
 }
 
+export async function findOpenTransferById(transferId: string): Promise<TransferRow> {
+  const supabase = createServiceSupabaseClient();
+  const { data, error } = await supabase
+    .from("credit_transfers")
+    .select("id, apartment_id, kind, remaining_minutes")
+    .in("status", ["open", "partially_filled"])
+    .eq("id", transferId)
+    .single();
+
+  if (error) throw error;
+
+  return {
+    id: data.id,
+    apartmentId: data.apartment_id,
+    kind: data.kind,
+    remainingMinutes: data.remaining_minutes,
+  };
+}
+
 export async function insertTransferAcceptance(input: {
   transferId: string;
   fromApartmentId: string;
