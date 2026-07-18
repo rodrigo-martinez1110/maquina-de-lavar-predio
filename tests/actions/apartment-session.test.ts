@@ -24,6 +24,7 @@ describe("apartment session", () => {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-key";
     process.env.SUPABASE_SERVICE_ROLE_KEY = "service-key";
     process.env.APARTMENT_SESSION_SECRET = "test-secret-at-least-16";
+    process.env.ADMIN_PASSWORD = "admin-secret";
     cookieJar.clear();
     setCookieOptions.clear();
     vi.useRealTimers();

@@ -19,9 +19,11 @@ NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 APARTMENT_SESSION_SECRET=
+ADMIN_PASSWORD=
 ```
 
 `SUPABASE_SERVICE_ROLE_KEY` deve ficar somente no servidor. Nao exponha esse valor no navegador ou em codigo client-side.
+`ADMIN_PASSWORD` controla o acesso ao painel `/admin`.
 
 ## Checklist
 

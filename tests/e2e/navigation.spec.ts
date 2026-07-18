@@ -8,11 +8,8 @@ test("public login pages render", async ({ page }) => {
 
   await page.goto("/admin/login", { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { name: "Admin" })).toBeVisible();
-  await expect(page.getByPlaceholder("Email")).toBeVisible();
-  await expect(page.getByPlaceholder("Senha")).toBeVisible();
+  await expect(page.getByPlaceholder("Senha admin")).toBeVisible();
 
   await page.goto("/admin", { waitUntil: "domcontentloaded" });
-  await expect(page.getByRole("heading", { name: "Admin" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Apartamentos" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Metricas" })).toBeVisible();
+  await expect(page).toHaveURL(/\/admin\/login$/);
 });

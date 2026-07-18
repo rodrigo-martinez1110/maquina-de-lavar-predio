@@ -13,12 +13,14 @@ describe("env", () => {
         NEXT_PUBLIC_SUPABASE_ANON_KEY: "anon",
         SUPABASE_SERVICE_ROLE_KEY: "service",
         APARTMENT_SESSION_SECRET: "a-long-random-secret",
+        ADMIN_PASSWORD: "another-secret",
       }),
     ).toEqual({
       NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co",
       NEXT_PUBLIC_SUPABASE_ANON_KEY: "anon",
       SUPABASE_SERVICE_ROLE_KEY: "service",
       APARTMENT_SESSION_SECRET: "a-long-random-secret",
+      ADMIN_PASSWORD: "another-secret",
     });
   });
 
@@ -50,6 +52,7 @@ describe("env", () => {
         NEXT_PUBLIC_SUPABASE_ANON_KEY: "anon",
         SUPABASE_SERVICE_ROLE_KEY: "service",
         APARTMENT_SESSION_SECRET: "short",
+        ADMIN_PASSWORD: "another-secret",
       }),
     ).toThrow("APARTMENT_SESSION_SECRET");
   });

@@ -1,9 +1,14 @@
 import { resetApartmentPin, updateApartment } from "../../../lib/actions/admin-apartments";
+import { getAdminSession } from "../../../lib/auth/admin-session";
 import { listApartmentsForAdmin } from "../../../lib/repositories/apartments";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminApartmentsPage() {
+  const session = await getAdminSession();
+  if (!session) redirect("/admin/login");
+
   const apartments = await listApartmentsForAdmin();
 
   return (

@@ -1,3 +1,5 @@
+import { redirect } from "next/navigation";
+import { getAdminSession } from "../../../lib/auth/admin-session";
 import {
   rankApartmentUsage,
   summarizeUsageTotals,
@@ -7,6 +9,9 @@ import { getAdminUsageMetrics } from "../../../lib/repositories/metrics";
 export const dynamic = "force-dynamic";
 
 export default async function AdminMetricsPage() {
+  const session = await getAdminSession();
+  if (!session) redirect("/admin/login");
+
   const { rows, peakSlots } = await getAdminUsageMetrics();
   const totals = summarizeUsageTotals(rows);
   const apartmentUsage = rankApartmentUsage(rows);
