@@ -82,3 +82,16 @@ export async function createReservationWithBalance(row: {
 
   return { id: data };
 }
+
+export async function updateReservationStatus(
+  id: string,
+  status: "cancelled" | "released" | "finished" | "late",
+) {
+  const supabase = createServiceSupabaseClient();
+  const { error } = await supabase
+    .from("reservations")
+    .update({ status, updated_at: new Date().toISOString() })
+    .eq("id", id);
+
+  if (error) throw error;
+}

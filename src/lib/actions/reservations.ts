@@ -1,7 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { getApartmentSession } from "../auth/apartment-session";
 import { assertReservationAllowed, type ReservationWindow } from "../domain/reservations";
-import { assertReservableWindow, minutesBetween } from "../domain/time";
+import { assertReservableWindow, ceilToThirtyMinuteBlocks, minutesBetween } from "../domain/time";
 export { availableMinutesFromWeeklyBalance } from "../domain/weekly-balances";
 
 type ReservationKind = "wash" | "dry" | "wash_dry" | "custom";
@@ -81,6 +81,24 @@ function assertReservationWindowShape(startIso: string, endIso: string) {
   if (duration < 30) throw new Error("Reserva minima de 30 minutos");
   if (duration > 240) throw new Error("Reserva maxima de 4 horas");
   if (duration % 30 !== 0) throw new Error("Reservas devem usar blocos de 30 minutos");
+}
+
+export function calculateCancellationRefund(input: {
+  startsAtIso: string;
+  cancelledAtIso: string;
+  reservedMinutes: number;
+}) {
+  const minutesBeforeStart = minutesBetween(input.cancelledAtIso, input.startsAtIso);
+  return minutesBeforeStart >= 60 ? input.reservedMinutes : 0;
+}
+
+export function calculateReleaseRefund(input: { endsAtIso: string; releasedAtIso: string }) {
+  const unusedMinutes = minutesBetween(input.releasedAtIso, input.endsAtIso);
+  return Math.max(0, Math.floor(unusedMinutes / 30) * 30);
+}
+
+export function calculateLatePenalty(input: { endsAtIso: string; finishedAtIso: string }) {
+  return ceilToThirtyMinuteBlocks(minutesBetween(input.endsAtIso, input.finishedAtIso));
 }
 
 export function mapReservationDatabaseError(error: unknown): Error | null {
