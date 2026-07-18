@@ -27,6 +27,16 @@ describe("reservation domain", () => {
     ).toThrow("Reserva maxima de 4 horas");
   });
 
+  it("blocks reservations that are not 30 minute blocks", () => {
+    expect(() =>
+      assertReservationAllowed({
+        startIso: "2026-07-20T10:00:00-03:00",
+        endIso: "2026-07-20T10:45:00-03:00",
+        availableMinutes: 120,
+      }),
+    ).toThrow("Reservas devem usar blocos de 30 minutos");
+  });
+
   it("blocks reservations without enough balance", () => {
     expect(() =>
       assertReservationAllowed({

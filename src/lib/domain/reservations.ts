@@ -14,6 +14,7 @@ export function assertReservationAllowed(input: ReservationAllowedInput): void {
   const duration = minutesBetween(input.startIso, input.endIso);
   if (duration < 30) throw new Error("Reserva minima de 30 minutos");
   if (duration > 240) throw new Error("Reserva maxima de 4 horas");
+  if (duration % 30 !== 0) throw new Error("Reservas devem usar blocos de 30 minutos");
   if (duration > input.availableMinutes) throw new Error("Saldo insuficiente");
 }
 
