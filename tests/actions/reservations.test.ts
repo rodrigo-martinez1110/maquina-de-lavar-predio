@@ -95,4 +95,18 @@ describe("reservation actions", () => {
   it("treats a missing weekly balance as zero available minutes", () => {
     expect(availableMinutesFromWeeklyBalance(null)).toBe(0);
   });
+
+  it("includes manual adjustments in available weekly balance", () => {
+    const baseBalance = {
+      quota_minutes: 120,
+      received_minutes: 30,
+      sent_minutes: 15,
+      reserved_minutes: 60,
+      refunded_minutes: 10,
+      penalty_minutes: 5,
+    };
+
+    expect(availableMinutesFromWeeklyBalance({ ...baseBalance, manual_adjustment_minutes: 20 })).toBe(100);
+    expect(availableMinutesFromWeeklyBalance({ ...baseBalance, manual_adjustment_minutes: -30 })).toBe(50);
+  });
 });

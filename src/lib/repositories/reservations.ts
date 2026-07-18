@@ -46,7 +46,9 @@ export async function getAvailableReservationMinutes(input: { apartmentId: strin
   const weekStart = weekStartForReservation(input.startIso);
   const { data, error } = await supabase
     .from("weekly_balances")
-    .select("quota_minutes, received_minutes, sent_minutes, reserved_minutes, refunded_minutes, penalty_minutes")
+    .select(
+      "quota_minutes, manual_adjustment_minutes, received_minutes, sent_minutes, reserved_minutes, refunded_minutes, penalty_minutes",
+    )
     .eq("apartment_id", input.apartmentId)
     .eq("week_start", weekStart)
     .maybeSingle();

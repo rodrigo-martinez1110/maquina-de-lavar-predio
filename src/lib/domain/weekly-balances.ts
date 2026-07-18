@@ -1,5 +1,6 @@
 type WeeklyBalanceForAvailability = {
   quota_minutes: number;
+  manual_adjustment_minutes: number;
   received_minutes: number;
   sent_minutes: number;
   reserved_minutes: number;
@@ -12,6 +13,7 @@ export function availableMinutesFromWeeklyBalance(balance: WeeklyBalanceForAvail
 
   return (
     balance.quota_minutes +
+    balance.manual_adjustment_minutes +
     balance.received_minutes -
     balance.sent_minutes -
     balance.reserved_minutes +
