@@ -275,8 +275,6 @@ export type Database = {
           p_kind: Database["public"]["Enums"]["reservation_kind"];
           p_starts_at: string;
           p_ends_at: string;
-          p_estimated_minutes: number;
-          p_week_start: string;
           p_actor_metadata?: Json;
         };
         Returns: string;

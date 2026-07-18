@@ -71,13 +71,10 @@ export async function createReservationWithBalance(row: {
     p_kind: row.kind,
     p_starts_at: row.startIso,
     p_ends_at: row.endIso,
-    p_estimated_minutes: row.estimatedMinutes,
-    p_week_start: weekStartForReservation(row.startIso),
     p_actor_metadata: {
       kind: row.kind,
       startIso: row.startIso,
       endIso: row.endIso,
-      estimatedMinutes: row.estimatedMinutes,
     },
   });
 

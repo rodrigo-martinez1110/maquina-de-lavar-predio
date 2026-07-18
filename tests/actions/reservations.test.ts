@@ -112,8 +112,14 @@ describe("reservation actions", () => {
     const sql = readFileSync("supabase/migrations/0002_reservation_creation_rpc.sql", "utf8");
 
     expect(sql).toContain("create or replace function create_reservation_with_balance");
+    expect(sql).not.toContain("p_estimated_minutes integer");
+    expect(sql).not.toContain("p_week_start date");
+    expect(sql).toContain("extract(epoch from (p_ends_at - p_starts_at)) / 60");
+    expect(sql).toContain("date_trunc('week', p_starts_at at time zone 'America/Sao_Paulo')::date");
+    expect(sql).toContain("v_estimated_minutes between 30 and 240");
+    expect(sql).toContain("v_estimated_minutes % 30");
     expect(sql).toContain("for update");
-    expect(sql).toContain("reserved_minutes = reserved_minutes + p_estimated_minutes");
+    expect(sql).toContain("reserved_minutes = reserved_minutes + v_estimated_minutes");
     expect(sql).toContain("insert into audit_logs");
     expect(sql).toContain("to service_role");
   });

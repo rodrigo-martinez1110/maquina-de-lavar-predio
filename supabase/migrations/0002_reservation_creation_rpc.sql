@@ -1,10 +1,18 @@
+drop function if exists create_reservation_with_balance(
+  uuid,
+  reservation_kind,
+  timestamptz,
+  timestamptz,
+  integer,
+  date,
+  jsonb
+);
+
 create or replace function create_reservation_with_balance(
   p_apartment_id uuid,
   p_kind reservation_kind,
   p_starts_at timestamptz,
   p_ends_at timestamptz,
-  p_estimated_minutes integer,
-  p_week_start date,
   p_actor_metadata jsonb default '{}'::jsonb
 )
 returns uuid
@@ -15,13 +23,39 @@ as $$
 declare
   v_balance weekly_balances%rowtype;
   v_available_minutes integer;
+  v_estimated_minutes integer;
+  v_week_start date;
   v_reservation_id uuid;
 begin
+  v_estimated_minutes := (extract(epoch from (p_ends_at - p_starts_at)) / 60)::integer;
+  v_week_start := date_trunc('week', p_starts_at at time zone 'America/Sao_Paulo')::date;
+
+  if p_ends_at <= p_starts_at then
+    raise exception 'Janela de reserva invalida'
+      using errcode = 'P0001';
+  end if;
+
+  if not (v_estimated_minutes between 30 and 240) or v_estimated_minutes % 30 <> 0 then
+    raise exception 'Duracao de reserva invalida'
+      using errcode = 'P0001';
+  end if;
+
+  if (p_starts_at at time zone 'America/Sao_Paulo')::date <> (p_ends_at at time zone 'America/Sao_Paulo')::date then
+    raise exception 'Reservas devem terminar no mesmo dia'
+      using errcode = 'P0001';
+  end if;
+
+  if (p_starts_at at time zone 'America/Sao_Paulo')::time < time '07:00'
+    or (p_ends_at at time zone 'America/Sao_Paulo')::time > time '23:00' then
+    raise exception 'Reservas devem ocorrer entre 07:00 e 23:00'
+      using errcode = 'P0001';
+  end if;
+
   select *
   into v_balance
   from weekly_balances
   where apartment_id = p_apartment_id
-    and week_start = p_week_start
+    and week_start = v_week_start
   for update;
 
   if not found then
@@ -38,7 +72,7 @@ begin
     + v_balance.refunded_minutes
     - v_balance.penalty_minutes;
 
-  if v_available_minutes < p_estimated_minutes then
+  if v_available_minutes < v_estimated_minutes then
     raise exception 'Saldo insuficiente'
       using errcode = 'P0001';
   end if;
@@ -55,12 +89,12 @@ begin
     p_kind,
     p_starts_at,
     p_ends_at,
-    p_estimated_minutes
+    v_estimated_minutes
   )
   returning id into v_reservation_id;
 
   update weekly_balances
-  set reserved_minutes = reserved_minutes + p_estimated_minutes,
+  set reserved_minutes = reserved_minutes + v_estimated_minutes,
       updated_at = now()
   where id = v_balance.id;
 
@@ -82,8 +116,8 @@ begin
       'kind', p_kind,
       'startIso', p_starts_at,
       'endIso', p_ends_at,
-      'estimatedMinutes', p_estimated_minutes,
-      'weekStart', p_week_start
+      'estimatedMinutes', v_estimated_minutes,
+      'weekStart', v_week_start
     )
   );
 
@@ -96,8 +130,6 @@ revoke all on function create_reservation_with_balance(
   reservation_kind,
   timestamptz,
   timestamptz,
-  integer,
-  date,
   jsonb
 ) from public;
 
@@ -106,7 +138,5 @@ grant execute on function create_reservation_with_balance(
   reservation_kind,
   timestamptz,
   timestamptz,
-  integer,
-  date,
   jsonb
 ) to service_role;
