@@ -57,3 +57,31 @@ export async function getAvailableReservationMinutes(input: { apartmentId: strin
 
   return availableMinutesFromWeeklyBalance(data);
 }
+
+export async function createReservationWithBalance(row: {
+  apartmentId: string;
+  kind: "wash" | "dry" | "wash_dry" | "custom";
+  startIso: string;
+  endIso: string;
+  estimatedMinutes: number;
+}) {
+  const supabase = createServiceSupabaseClient();
+  const { data, error } = await supabase.rpc("create_reservation_with_balance", {
+    p_apartment_id: row.apartmentId,
+    p_kind: row.kind,
+    p_starts_at: row.startIso,
+    p_ends_at: row.endIso,
+    p_estimated_minutes: row.estimatedMinutes,
+    p_week_start: weekStartForReservation(row.startIso),
+    p_actor_metadata: {
+      kind: row.kind,
+      startIso: row.startIso,
+      endIso: row.endIso,
+      estimatedMinutes: row.estimatedMinutes,
+    },
+  });
+
+  if (error) throw error;
+
+  return { id: data };
+}

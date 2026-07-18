@@ -268,7 +268,20 @@ export type Database = {
       };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      create_reservation_with_balance: {
+        Args: {
+          p_apartment_id: string;
+          p_kind: Database["public"]["Enums"]["reservation_kind"];
+          p_starts_at: string;
+          p_ends_at: string;
+          p_estimated_minutes: number;
+          p_week_start: string;
+          p_actor_metadata?: Json;
+        };
+        Returns: string;
+      };
+    };
     Enums: {
       reservation_status: "reserved" | "in_use" | "finished" | "released" | "cancelled" | "unregistered" | "late";
       reservation_kind: "wash" | "dry" | "wash_dry" | "custom";
