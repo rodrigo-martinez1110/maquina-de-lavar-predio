@@ -1,4 +1,5 @@
 create extension if not exists pgcrypto;
+create extension if not exists btree_gist;
 
 create type reservation_status as enum ('reserved', 'in_use', 'finished', 'released', 'cancelled', 'unregistered', 'late');
 create type reservation_kind as enum ('wash', 'dry', 'wash_dry', 'custom');
@@ -30,13 +31,33 @@ create table reservations (
   status reservation_status not null default 'reserved',
   starts_at timestamptz not null,
   ends_at timestamptz not null,
-  estimated_minutes integer not null check (estimated_minutes between 30 and 240),
+  estimated_minutes integer not null check (estimated_minutes between 30 and 240 and estimated_minutes % 30 = 0),
   actual_minutes integer check (actual_minutes >= 0),
   released_at timestamptz,
   cancelled_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  check (ends_at > starts_at)
+  check (ends_at > starts_at),
+  constraint reservations_active_no_overlap exclude using gist (
+    (tstzrange(starts_at, ends_at, '[)')) with &&
+  )
+  where (status in ('reserved', 'in_use', 'late'))
+);
+
+create table weekly_balances (
+  id uuid primary key default gen_random_uuid(),
+  apartment_id uuid not null references apartments(id),
+  week_start date not null check (extract(isodow from week_start) = 1),
+  quota_minutes integer not null check (quota_minutes >= 0),
+  manual_adjustment_minutes integer not null default 0,
+  received_minutes integer not null default 0 check (received_minutes >= 0),
+  sent_minutes integer not null default 0 check (sent_minutes >= 0),
+  reserved_minutes integer not null default 0 check (reserved_minutes >= 0),
+  refunded_minutes integer not null default 0 check (refunded_minutes >= 0),
+  penalty_minutes integer not null default 0 check (penalty_minutes >= 0),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (apartment_id, week_start)
 );
 
 create table credit_transfers (
@@ -44,11 +65,17 @@ create table credit_transfers (
   apartment_id uuid not null references apartments(id),
   kind transfer_kind not null,
   status transfer_status not null default 'open',
-  week_start date not null,
+  week_start date not null check (extract(isodow from week_start) = 1),
   total_minutes integer not null check (total_minutes > 0),
   remaining_minutes integer not null check (remaining_minutes >= 0),
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  check (remaining_minutes <= total_minutes),
+  check (
+    (status = 'filled' and remaining_minutes = 0)
+    or (status in ('open', 'partially_filled') and remaining_minutes > 0)
+    or status = 'cancelled'
+  )
 );
 
 create table credit_transfer_acceptances (
@@ -83,9 +110,28 @@ create table audit_logs (
 
 create index reservations_window_idx on reservations (starts_at, ends_at);
 create index reservations_apartment_idx on reservations (apartment_id, starts_at);
+create index weekly_balances_week_idx on weekly_balances (week_start, apartment_id);
 create index credit_transfers_week_idx on credit_transfers (week_start, status);
 create index notifications_apartment_idx on notifications (apartment_id, read_at, created_at);
 create index audit_logs_created_idx on audit_logs (created_at desc);
+
+alter table apartments enable row level security;
+alter table admin_users enable row level security;
+alter table reservations enable row level security;
+alter table weekly_balances enable row level security;
+alter table credit_transfers enable row level security;
+alter table credit_transfer_acceptances enable row level security;
+alter table notifications enable row level security;
+alter table audit_logs enable row level security;
+
+revoke all on apartments from anon, authenticated;
+revoke all on admin_users from anon, authenticated;
+revoke all on reservations from anon, authenticated;
+revoke all on weekly_balances from anon, authenticated;
+revoke all on credit_transfers from anon, authenticated;
+revoke all on credit_transfer_acceptances from anon, authenticated;
+revoke all on notifications from anon, authenticated;
+revoke all on audit_logs from anon, authenticated;
 
 insert into apartments (number, pin_hash)
 select n, crypt('1234', gen_salt('bf'))
