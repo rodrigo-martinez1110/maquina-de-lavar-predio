@@ -22,16 +22,16 @@ describe("resident dashboard components", () => {
     expect(markup).toContain("07:30 - disponivel");
   });
 
-  it("renders only available resident navigation links", () => {
+  it("renders available resident navigation links", () => {
     const markup = renderToStaticMarkup(<AppNav />);
 
     expect(markup).toContain('href="/"');
     expect(markup).toContain('href="/reservations"');
+    expect(markup).toContain('href="/credits"');
     expect(markup).toContain("Inicio");
     expect(markup).toContain("Agenda");
-    expect(markup).not.toContain("/credits");
+    expect(markup).toContain("Horas");
     expect(markup).not.toContain("/metrics");
-    expect(markup).not.toContain("Horas");
     expect(markup).not.toContain("Metricas");
   });
 });
