@@ -195,7 +195,6 @@ export type Database = {
           created_at?: string;
         };
         Update: {
-          id?: string;
           transfer_id?: string;
           from_apartment_id?: string;
           to_apartment_id?: string;

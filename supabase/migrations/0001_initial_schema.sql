@@ -98,6 +98,11 @@ declare
   parent_total_minutes integer;
   accepted_minutes integer;
 begin
+  if tg_op = 'UPDATE' and new.id <> old.id then
+    raise exception 'credit transfer acceptance id cannot be changed'
+      using errcode = 'check_violation';
+  end if;
+
   select kind, apartment_id, total_minutes
   into parent_kind, parent_apartment_id, parent_total_minutes
   from credit_transfers
