@@ -2,12 +2,36 @@ import { readFileSync } from "fs";
 import { describe, expect, it, vi } from "vitest";
 import {
   availableMinutesFromWeeklyBalance,
+  buildReservationWindowFromForm,
   createReservationActionUseCase,
   createReservationUseCase,
   mapReservationDatabaseError,
 } from "../../src/lib/actions/reservations";
 
 describe("reservation actions", () => {
+  it("builds reservation ISO window from simple form values", () => {
+    expect(
+      buildReservationWindowFromForm({
+        date: "2026-07-20",
+        startTime: "10:30",
+        durationMinutes: "90",
+      }),
+    ).toEqual({
+      startIso: "2026-07-20T10:30:00-03:00",
+      endIso: "2026-07-20T12:00:00-03:00",
+    });
+  });
+
+  it("rejects simple reservation form windows that pass 23:00", () => {
+    expect(() =>
+      buildReservationWindowFromForm({
+        date: "2026-07-20",
+        startTime: "22:00",
+        durationMinutes: "120",
+      }),
+    ).toThrow("Reservas devem terminar ate 23:00");
+  });
+
   it("creates reservation when balance and window are valid", async () => {
     const result = await createReservationUseCase({
       apartmentId: "apt-1",

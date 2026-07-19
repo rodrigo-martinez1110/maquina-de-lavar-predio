@@ -7,6 +7,49 @@ export { availableMinutesFromWeeklyBalance } from "../domain/weekly-balances";
 type ReservationKind = "wash" | "dry" | "wash_dry" | "custom";
 const RESERVATION_KINDS: ReadonlySet<string> = new Set(["wash", "dry", "wash_dry", "custom"]);
 
+export type ReservationFormState = {
+  error?: string;
+  success?: string;
+};
+
+export function buildReservationWindowFromForm(input: {
+  date: FormDataEntryValue | null;
+  startTime: FormDataEntryValue | null;
+  durationMinutes: FormDataEntryValue | null;
+}) {
+  const date = String(input.date ?? "");
+  const startTime = String(input.startTime ?? "");
+  const durationMinutes = Number(input.durationMinutes);
+  const dateMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+  const timeMatch = /^(\d{2}):(\d{2})$/.exec(startTime);
+
+  if (!dateMatch || !timeMatch) throw new Error("Data ou horario invalido");
+  if (
+    !Number.isInteger(durationMinutes) ||
+    durationMinutes < 30 ||
+    durationMinutes > 240 ||
+    durationMinutes % 30 !== 0
+  ) {
+    throw new Error("Duracao invalida");
+  }
+
+  const startHour = Number(timeMatch[1]);
+  const startMinute = Number(timeMatch[2]);
+  if (startHour > 23 || startMinute > 59) throw new Error("Data ou horario invalido");
+
+  const startTotalMinutes = startHour * 60 + startMinute;
+  const endTotalMinutes = startTotalMinutes + durationMinutes;
+  if (endTotalMinutes > 23 * 60) throw new Error("Reservas devem terminar ate 23:00");
+
+  const endHour = Math.floor(endTotalMinutes / 60);
+  const endMinute = endTotalMinutes % 60;
+
+  return {
+    startIso: `${date}T${startTime}:00-03:00`,
+    endIso: `${date}T${String(endHour).padStart(2, "0")}:${String(endMinute).padStart(2, "0")}:00-03:00`,
+  };
+}
+
 export async function createReservationUseCase(input: {
   apartmentId: string;
   kind: ReservationKind;
@@ -128,4 +171,40 @@ export async function createReservationAction(formData: FormData) {
   });
 
   revalidatePath("/reservations");
+}
+
+export async function createReservationFromForm(
+  _previousState: ReservationFormState,
+  formData: FormData,
+): Promise<ReservationFormState> {
+  "use server";
+
+  const session = await getApartmentSession();
+  if (!session) return { error: "Sessao expirada" };
+
+  try {
+    const { startIso, endIso } = buildReservationWindowFromForm({
+      date: formData.get("date"),
+      startTime: formData.get("startTime"),
+      durationMinutes: formData.get("durationMinutes"),
+    });
+    const actionFormData = new FormData();
+    actionFormData.set("kind", String(formData.get("kind") ?? ""));
+    actionFormData.set("startIso", startIso);
+    actionFormData.set("endIso", endIso);
+
+    const { createReservationWithBalance } = await import("../repositories/reservations");
+
+    await createReservationActionUseCase({
+      apartmentId: session.apartmentId,
+      formData: actionFormData,
+      createReservationAtomically: createReservationWithBalance,
+    });
+  } catch (error) {
+    if (error instanceof Error) return { error: error.message };
+    throw error;
+  }
+
+  revalidatePath("/reservations");
+  return { success: "Reserva criada com sucesso" };
 }
