@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { AppNav } from "../../components/AppNav";
 import { ReservationTimeline } from "../../components/ReservationTimeline";
-import { createReservationFromForm } from "../../lib/actions/reservations";
+import { createReservationFromForm } from "../../lib/actions/reservation-form";
 import { getApartmentSession } from "../../lib/auth/apartment-session";
 import { ReservationForm } from "./reservation-form";
 

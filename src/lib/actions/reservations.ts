@@ -7,11 +7,6 @@ export { availableMinutesFromWeeklyBalance } from "../domain/weekly-balances";
 type ReservationKind = "wash" | "dry" | "wash_dry" | "custom";
 const RESERVATION_KINDS: ReadonlySet<string> = new Set(["wash", "dry", "wash_dry", "custom"]);
 
-export type ReservationFormState = {
-  error?: string;
-  success?: string;
-};
-
 export function buildReservationWindowFromForm(input: {
   date: FormDataEntryValue | null;
   startTime: FormDataEntryValue | null;
@@ -171,40 +166,4 @@ export async function createReservationAction(formData: FormData) {
   });
 
   revalidatePath("/reservations");
-}
-
-export async function createReservationFromForm(
-  _previousState: ReservationFormState,
-  formData: FormData,
-): Promise<ReservationFormState> {
-  "use server";
-
-  const session = await getApartmentSession();
-  if (!session) return { error: "Sessao expirada" };
-
-  try {
-    const { startIso, endIso } = buildReservationWindowFromForm({
-      date: formData.get("date"),
-      startTime: formData.get("startTime"),
-      durationMinutes: formData.get("durationMinutes"),
-    });
-    const actionFormData = new FormData();
-    actionFormData.set("kind", String(formData.get("kind") ?? ""));
-    actionFormData.set("startIso", startIso);
-    actionFormData.set("endIso", endIso);
-
-    const { createReservationWithBalance } = await import("../repositories/reservations");
-
-    await createReservationActionUseCase({
-      apartmentId: session.apartmentId,
-      formData: actionFormData,
-      createReservationAtomically: createReservationWithBalance,
-    });
-  } catch (error) {
-    if (error instanceof Error) return { error: error.message };
-    throw error;
-  }
-
-  revalidatePath("/reservations");
-  return { success: "Reserva criada com sucesso" };
 }

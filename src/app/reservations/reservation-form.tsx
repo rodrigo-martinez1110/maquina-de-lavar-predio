@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import type { ReservationFormState } from "../../lib/actions/reservations";
+import type { ReservationFormState } from "../../lib/actions/reservation-form";
 
 const initialState: ReservationFormState = {};
 
