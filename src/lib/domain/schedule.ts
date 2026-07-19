@@ -36,9 +36,21 @@ function timeFromMinutes(minutes: number): string {
 }
 
 function minutesOfDayFromIso(iso: string): number {
-  const timeText = iso.slice(11, 16);
-  const [hourText, minuteText] = timeText.split(":");
-  return Number(hourText) * 60 + Number(minuteText);
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+    timeZone: "America/Sao_Paulo",
+  }).formatToParts(new Date(iso));
+  const hour = Number(parts.find((part) => part.type === "hour")?.value ?? "0");
+  const minute = Number(parts.find((part) => part.type === "minute")?.value ?? "0");
+  return hour * 60 + minute;
+}
+
+function dateInSaoPauloFromIso(iso: string): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+  }).format(new Date(iso));
 }
 
 function minutesFromTime(time: string): number {
@@ -60,7 +72,7 @@ export function buildDaySlots(input: {
     const reservation = input.reservations.find((candidate) => {
       const startsAt = minutesOfDayFromIso(candidate.startsAtIso);
       const endsAt = minutesOfDayFromIso(candidate.endsAtIso);
-      return candidate.startsAtIso.startsWith(input.date) && startsAt <= slotMinutes && slotMinutes < endsAt;
+      return dateInSaoPauloFromIso(candidate.startsAtIso) === input.date && startsAt <= slotMinutes && slotMinutes < endsAt;
     });
 
     if (reservation) {

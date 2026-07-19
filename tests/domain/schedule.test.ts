@@ -39,6 +39,33 @@ describe("schedule domain", () => {
     });
   });
 
+  it("marks UTC database timestamps using the Sao Paulo civil time", () => {
+    const slots = buildDaySlots({
+      date: "2026-07-19",
+      reservations: [
+        {
+          id: "reservation-1",
+          apartmentNumber: 2,
+          kind: "wash_dry",
+          startsAtIso: "2026-07-19T10:00:00+00:00",
+          endsAtIso: "2026-07-19T12:00:00+00:00",
+        },
+      ],
+    });
+
+    expect(slots.find((slot) => slot.time === "07:00")).toMatchObject({
+      status: "busy",
+      apartmentNumber: 2,
+      reservationId: "reservation-1",
+    });
+    expect(slots.find((slot) => slot.time === "09:00")).toMatchObject({
+      status: "free",
+    });
+    expect(slots.find((slot) => slot.time === "10:00")).toMatchObject({
+      status: "free",
+    });
+  });
+
   it("groups adjacent free slots into readable windows", () => {
     const slots = buildDaySlots({
       date: "2026-07-19",
