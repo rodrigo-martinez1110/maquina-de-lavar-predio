@@ -1,4 +1,5 @@
 import type { ReservationWindow } from "../domain/reservations";
+import type { ScheduleReservation } from "../domain/schedule";
 import { availableMinutesFromWeeklyBalance, weekStartForReservation } from "../domain/weekly-balances";
 import { createServiceSupabaseClient } from "../supabase/server";
 
@@ -14,6 +15,49 @@ export async function findReservationConflicts(window: ReservationWindow): Promi
   if (error) throw error;
 
   return data ?? [];
+}
+
+export async function listReservationsForDay(date: string): Promise<ScheduleReservation[]> {
+  const supabase = createServiceSupabaseClient();
+  const dayStartIso = `${date}T00:00:00-03:00`;
+  const nextDate = new Date(`${date}T12:00:00-03:00`);
+  nextDate.setDate(nextDate.getDate() + 1);
+  const nextDateText = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+  }).format(nextDate);
+  const dayEndIso = `${nextDateText}T00:00:00-03:00`;
+
+  const { data: reservations, error } = await supabase
+    .from("reservations")
+    .select("id, apartment_id, kind, starts_at, ends_at")
+    .lt("starts_at", dayEndIso)
+    .gt("ends_at", dayStartIso)
+    .in("status", ["reserved", "in_use", "late"])
+    .order("starts_at", { ascending: true });
+
+  if (error) throw error;
+  const reservationRows = reservations ?? [];
+  if (reservationRows.length === 0) return [];
+
+  const apartmentIds = [...new Set(reservationRows.map((reservation) => reservation.apartment_id))];
+  const { data: apartments, error: apartmentsError } = await supabase
+    .from("apartments")
+    .select("id, number")
+    .in("id", apartmentIds);
+
+  if (apartmentsError) throw apartmentsError;
+
+  const apartmentNumberById = new Map(
+    (apartments ?? []).map((apartment) => [apartment.id, apartment.number]),
+  );
+
+  return reservationRows.map((reservation) => ({
+    id: reservation.id,
+    apartmentNumber: apartmentNumberById.get(reservation.apartment_id) ?? 0,
+    kind: reservation.kind,
+    startsAtIso: reservation.starts_at,
+    endsAtIso: reservation.ends_at,
+  }));
 }
 
 export async function insertReservation(row: {

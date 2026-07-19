@@ -2,10 +2,21 @@ import { redirect } from "next/navigation";
 import { AppNav } from "../components/AppNav";
 import { BalanceCard } from "../components/BalanceCard";
 import { getApartmentSession } from "../lib/auth/apartment-session";
+import { getApartmentWeeklyAvailableMinutes } from "../lib/repositories/weekly-balances";
+
+function todayInSaoPaulo() {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+  }).format(new Date());
+}
 
 export default async function HomePage() {
   const session = await getApartmentSession();
   if (!session) redirect("/login");
+  const availableMinutes = await getApartmentWeeklyAvailableMinutes({
+    apartmentId: session.apartmentId,
+    date: todayInSaoPaulo(),
+  });
 
   return (
     <main className="mx-auto flex min-h-screen max-w-5xl flex-col gap-6 p-4 pb-24">
@@ -18,7 +29,7 @@ export default async function HomePage() {
           Reserve, acompanhe seu saldo e combine horarios sem confusao.
         </p>
       </header>
-      <BalanceCard availableMinutes={360} />
+      <BalanceCard availableMinutes={availableMinutes} />
       <section className="grid grid-cols-2 gap-3">
         <a
           className="rounded-xl bg-slate-950 p-4 text-center font-medium text-white shadow-sm"

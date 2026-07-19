@@ -22,6 +22,13 @@ export function availableMinutesFromWeeklyBalance(balance: WeeklyBalanceForAvail
   );
 }
 
+export function availableMinutesFromWeeklyBalanceOrQuota(input: {
+  balance: WeeklyBalanceForAvailability | null;
+  defaultQuotaMinutes: number;
+}): number {
+  return input.balance ? availableMinutesFromWeeklyBalance(input.balance) : input.defaultQuotaMinutes;
+}
+
 export function weekStartForReservation(startIso: string): string {
   const dateText = startIso.slice(0, 10);
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateText);

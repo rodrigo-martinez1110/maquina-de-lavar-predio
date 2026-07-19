@@ -15,11 +15,35 @@ describe("resident dashboard components", () => {
 
   it("renders available reservation slots", () => {
     const markup = renderToStaticMarkup(
-      <ReservationTimeline slots={["07:00", "07:30"]} />,
+      <ReservationTimeline
+        slots={[
+          { time: "07:00", status: "free" },
+          { time: "07:30", status: "free" },
+        ]}
+      />,
     );
 
     expect(markup).toContain("07:00 - disponivel");
     expect(markup).toContain("07:30 - disponivel");
+  });
+
+  it("renders busy reservation slots with apartment number", () => {
+    const markup = renderToStaticMarkup(
+      <ReservationTimeline
+        slots={[
+          {
+            time: "10:00",
+            status: "busy",
+            apartmentNumber: 1,
+            reservationId: "reservation-1",
+            kind: "wash_dry",
+          },
+        ]}
+      />,
+    );
+
+    expect(markup).toContain("10:00 - ocupado");
+    expect(markup).toContain("Apt 1");
   });
 
   it("renders available resident navigation links", () => {

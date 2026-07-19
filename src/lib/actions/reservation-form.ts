@@ -43,5 +43,6 @@ export async function createReservationFromForm(
   }
 
   revalidatePath("/reservations");
+  revalidatePath("/");
   return { success: "Reserva criada com sucesso" };
 }
