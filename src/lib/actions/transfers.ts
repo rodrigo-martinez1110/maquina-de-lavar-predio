@@ -30,6 +30,7 @@ export async function createTransferUseCase(input: {
     kind: TransferKind;
     weekStart: string;
   }) => Promise<{ id: string } | null>;
+  getAvailableMinutes: (apartmentId: string) => Promise<number>;
   createTransfer: (row: {
     apartmentId: string;
     kind: TransferKind;
@@ -49,6 +50,12 @@ export async function createTransferUseCase(input: {
         ? "Ja existe um pedido aberto nesta semana"
         : "Ja existe uma oferta aberta nesta semana",
     );
+  }
+  if (input.kind === "offer") {
+    const availableMinutes = await input.getAvailableMinutes(input.apartmentId);
+    if (availableMinutes < input.totalMinutes) {
+      throw new Error("Saldo insuficiente para ceder horas");
+    }
   }
 
   const transfer = await input.createTransfer({
@@ -161,14 +168,21 @@ export async function createHourOffer(formData: FormData) {
   const session = await getApartmentSession();
   if (!session) throw new Error("Sessao expirada");
   const { createTransfer, findOpenTransferForApartmentWeekKind } = await import("../repositories/transfers");
+  const { getApartmentWeeklyAvailableMinutes } = await import("../repositories/weekly-balances");
   const { writeAuditLog } = await import("../repositories/audit-logs");
+  const weekStart = readWeekStart(formData);
 
   await createTransferUseCase({
     apartmentId: session.apartmentId,
     kind: "offer",
-    weekStart: readWeekStart(formData),
+    weekStart,
     totalMinutes: readTransferMinutes(formData),
     findExistingOpenTransfer: findOpenTransferForApartmentWeekKind,
+    getAvailableMinutes: async (apartmentId) =>
+      getApartmentWeeklyAvailableMinutes({
+        apartmentId,
+        date: weekStart,
+      }),
     createTransfer,
     audit: async (transferId, minutes) => {
       await writeAuditLog({
@@ -208,6 +222,7 @@ export async function createHourRequest(formData: FormData) {
     weekStart: readWeekStart(formData),
     totalMinutes: readTransferMinutes(formData),
     findExistingOpenTransfer: findOpenTransferForApartmentWeekKind,
+    getAvailableMinutes: async () => Number.MAX_SAFE_INTEGER,
     createTransfer,
     audit: async (transferId, minutes) => {
       await writeAuditLog({

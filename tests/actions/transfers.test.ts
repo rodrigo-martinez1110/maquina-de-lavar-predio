@@ -14,6 +14,7 @@ describe("transfer actions", () => {
         weekStart: "2026-07-13",
         totalMinutes: 120,
         findExistingOpenTransfer: async () => ({ id: "existing-transfer" }),
+        getAvailableMinutes: async () => 360,
         createTransfer: async (row) => row,
         audit: async () => undefined,
       }),
@@ -29,6 +30,7 @@ describe("transfer actions", () => {
       weekStart: "2026-07-13",
       totalMinutes: 120,
       findExistingOpenTransfer: async () => null,
+      getAvailableMinutes: async () => 360,
       createTransfer,
       audit: async () => undefined,
     });
@@ -39,6 +41,21 @@ describe("transfer actions", () => {
       weekStart: "2026-07-13",
       totalMinutes: 120,
     });
+  });
+
+  it("blocks creating offer above the available balance", async () => {
+    await expect(
+      createTransferUseCase({
+        apartmentId: "apt-5",
+        kind: "offer",
+        weekStart: "2026-07-13",
+        totalMinutes: 120,
+        findExistingOpenTransfer: async () => null,
+        getAvailableMinutes: async () => 60,
+        createTransfer: async (row) => ({ id: row.apartmentId }),
+        audit: async () => undefined,
+      }),
+    ).rejects.toThrow("Saldo insuficiente para ceder horas");
   });
 
   it("lets the owner cancel an open transfer", async () => {

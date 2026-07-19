@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { AppNav } from "../../components/AppNav";
 import { getApartmentSession } from "../../lib/auth/apartment-session";
 import { listOpenTransfersForWeek } from "../../lib/repositories/transfers";
+import { getApartmentWeeklyAvailableMinutes } from "../../lib/repositories/weekly-balances";
 import { CreditForms } from "./credit-forms";
 
 export default async function CreditsPage() {
@@ -9,6 +10,10 @@ export default async function CreditsPage() {
   if (!session) redirect("/login");
   const weekStart = weekStartForToday();
   const transfers = await listOpenTransfersForWeek(weekStart);
+  const availableMinutes = await getApartmentWeeklyAvailableMinutes({
+    apartmentId: session.apartmentId,
+    date: weekStart,
+  });
 
   return (
     <main className="mx-auto flex min-h-screen max-w-5xl flex-col gap-6 p-4 pb-24">
@@ -22,6 +27,7 @@ export default async function CreditsPage() {
         </p>
       </header>
       <CreditForms
+        availableMinutes={availableMinutes}
         currentApartmentId={session.apartmentId}
         transfers={transfers}
         weekStart={weekStart}

@@ -120,6 +120,7 @@ describe("resident dashboard components", () => {
   it("defaults transfer acceptance to the full remaining request up to 2h", () => {
     const markup = renderToStaticMarkup(
       <CreditForms
+        availableMinutes={360}
         currentApartmentId="apt-2"
         weekStart="2026-07-13"
         transfers={[
@@ -145,6 +146,7 @@ describe("resident dashboard components", () => {
   it("renders cancel for the resident own open transfer", () => {
     const markup = renderToStaticMarkup(
       <CreditForms
+        availableMinutes={360}
         currentApartmentId="apt-1"
         weekStart="2026-07-13"
         transfers={[
@@ -165,5 +167,21 @@ describe("resident dashboard components", () => {
 
     expect(markup).toContain("Cancelar");
     expect(markup).not.toContain("Ajudar");
+  });
+
+  it("limits hour offer options to available balance", () => {
+    const markup = renderToStaticMarkup(
+      <CreditForms
+        availableMinutes={60}
+        currentApartmentId="apt-1"
+        weekStart="2026-07-13"
+        transfers={[]}
+      />,
+    );
+    const offerFormMarkup = markup.slice(0, markup.indexOf("Pedir"));
+
+    expect(offerFormMarkup).toContain('<option value="60" selected="">1h</option>');
+    expect(offerFormMarkup).not.toContain('<option value="90">1h 30min</option>');
+    expect(offerFormMarkup).not.toContain('<option value="120">2h</option>');
   });
 });

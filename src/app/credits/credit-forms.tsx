@@ -11,6 +11,7 @@ import {
 import type { OpenTransferListItem } from "../../lib/repositories/transfers";
 
 const initialState: TransferFormState = {};
+const transferMinuteOptions = [30, 60, 90, 120];
 
 function formatMinutes(minutes: number) {
   const hours = Math.floor(minutes / 60);
@@ -47,24 +48,42 @@ function CreateTransferForm(props: {
   buttonClassName: string;
   buttonText: string;
   label: string;
+  maxMinutes?: number;
   weekStart: string;
 }) {
   const [state, formAction, isPending] = useActionState(props.action, initialState);
+  const maxMinutes = props.maxMinutes;
+  const options = maxMinutes === undefined
+    ? transferMinuteOptions
+    : transferMinuteOptions.filter((minutes) => minutes <= maxMinutes);
+  const hasOptions = options.length > 0;
+  const defaultValue = Math.min(60, options.at(-1) ?? 0);
 
   return (
     <form action={formAction} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
       <input name="weekStart" type="hidden" value={props.weekStart} />
       <label className="grid gap-2 text-sm font-medium text-slate-700">
         {props.label}
-        <select className="min-h-11 rounded-md border border-slate-300 bg-white px-3" name="minutes" defaultValue="60">
-          <option value="30">30 min</option>
-          <option value="60">1h</option>
-          <option value="90">1h30</option>
-          <option value="120">2h</option>
+        <select
+          className="min-h-11 rounded-md border border-slate-300 bg-white px-3 disabled:bg-slate-100"
+          disabled={!hasOptions || isPending}
+          name="minutes"
+          defaultValue={defaultValue}
+        >
+          {options.map((minutes) => (
+            <option key={minutes} value={minutes}>
+              {formatMinutes(minutes)}
+            </option>
+          ))}
         </select>
       </label>
+      {!hasOptions ? (
+        <p className="mt-3 rounded-md bg-amber-50 px-3 py-2 text-sm font-medium text-amber-800">
+          Sem saldo para ceder
+        </p>
+      ) : null}
       <StateMessage state={state} />
-      <button className={props.buttonClassName} disabled={isPending} type="submit">
+      <button className={props.buttonClassName} disabled={isPending || !hasOptions} type="submit">
         {isPending ? "Salvando..." : props.buttonText}
       </button>
     </form>
@@ -145,6 +164,7 @@ function AcceptTransferForm(props: {
 }
 
 export function CreditForms(props: {
+  availableMinutes: number;
   currentApartmentId: string;
   transfers: OpenTransferListItem[];
   weekStart: string;
@@ -157,6 +177,7 @@ export function CreditForms(props: {
           buttonClassName="mt-3 min-h-11 w-full rounded-xl bg-slate-950 p-3 font-medium text-white shadow-sm disabled:opacity-60"
           buttonText="Ceder horas"
           label="Ceder"
+          maxMinutes={props.availableMinutes}
           weekStart={props.weekStart}
         />
         <CreateTransferForm
