@@ -16,10 +16,12 @@ describe("schedule domain", () => {
       reservations: [
         {
           id: "reservation-1",
+          apartmentId: "apt-1",
           apartmentNumber: 1,
           kind: "wash_dry",
           startsAtIso: "2026-07-19T10:00:00-03:00",
           endsAtIso: "2026-07-19T11:00:00-03:00",
+          estimatedMinutes: 60,
         },
       ],
     });
@@ -45,10 +47,12 @@ describe("schedule domain", () => {
       reservations: [
         {
           id: "reservation-1",
+          apartmentId: "apt-2",
           apartmentNumber: 2,
           kind: "wash_dry",
           startsAtIso: "2026-07-19T10:00:00+00:00",
           endsAtIso: "2026-07-19T12:00:00+00:00",
+          estimatedMinutes: 120,
         },
       ],
     });
@@ -72,10 +76,12 @@ describe("schedule domain", () => {
       reservations: [
         {
           id: "reservation-1",
+          apartmentId: "apt-1",
           apartmentNumber: 1,
           kind: "wash_dry",
           startsAtIso: "2026-07-19T10:00:00-03:00",
           endsAtIso: "2026-07-19T11:00:00-03:00",
+          estimatedMinutes: 60,
         },
       ],
     });

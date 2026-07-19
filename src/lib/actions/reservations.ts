@@ -7,6 +7,13 @@ export { availableMinutesFromWeeklyBalance } from "../domain/weekly-balances";
 type ReservationKind = "wash" | "dry" | "wash_dry" | "custom";
 const RESERVATION_KINDS: ReadonlySet<string> = new Set(["wash", "dry", "wash_dry", "custom"]);
 
+type ReservationForCancellation = {
+  id: string;
+  apartmentId: string;
+  startsAtIso: string;
+  estimatedMinutes: number;
+};
+
 export function buildReservationWindowFromForm(input: {
   date: FormDataEntryValue | null;
   startTime: FormDataEntryValue | null;
@@ -130,6 +137,48 @@ export function calculateCancellationRefund(input: {
   return minutesBeforeStart >= 60 ? input.reservedMinutes : 0;
 }
 
+export async function cancelReservationUseCase(input: {
+  actorApartmentId: string;
+  nowIso: string;
+  reservation: ReservationForCancellation;
+  updateReservation: (row: {
+    reservationId: string;
+    cancelledAtIso: string;
+  }) => Promise<unknown>;
+  refundBalance: (row: {
+    apartmentId: string;
+    startIso: string;
+    minutes: number;
+  }) => Promise<unknown>;
+  audit: (reservationId: string, refundMinutes: number) => Promise<void>;
+}) {
+  if (input.reservation.apartmentId !== input.actorApartmentId) {
+    throw new Error("Nao e possivel cancelar reserva de outro apartamento");
+  }
+  if (minutesBetween(input.nowIso, input.reservation.startsAtIso) <= 0) {
+    throw new Error("Nao e possivel cancelar reserva que ja comecou");
+  }
+
+  const refundMinutes = calculateCancellationRefund({
+    startsAtIso: input.reservation.startsAtIso,
+    cancelledAtIso: input.nowIso,
+    reservedMinutes: input.reservation.estimatedMinutes,
+  });
+
+  await input.updateReservation({
+    reservationId: input.reservation.id,
+    cancelledAtIso: input.nowIso,
+  });
+  if (refundMinutes > 0) {
+    await input.refundBalance({
+      apartmentId: input.reservation.apartmentId,
+      startIso: input.reservation.startsAtIso,
+      minutes: refundMinutes,
+    });
+  }
+  await input.audit(input.reservation.id, refundMinutes);
+}
+
 export function calculateReleaseRefund(input: { endsAtIso: string; releasedAtIso: string }) {
   const unusedMinutes = minutesBetween(input.releasedAtIso, input.endsAtIso);
   return Math.max(0, Math.floor(unusedMinutes / 30) * 30);
@@ -166,4 +215,44 @@ export async function createReservationAction(formData: FormData) {
   });
 
   revalidatePath("/reservations");
+}
+
+export async function cancelReservationAction(formData: FormData) {
+  "use server";
+
+  const session = await getApartmentSession();
+  if (!session) throw new Error("Sessao expirada");
+
+  const reservationId = String(formData.get("reservationId") ?? "");
+  if (!reservationId) throw new Error("Reserva invalida");
+
+  const {
+    findActiveReservationById,
+    markReservationCancelled,
+  } = await import("../repositories/reservations");
+  const { refundWeeklyBalanceForReservation } = await import("../repositories/weekly-balances");
+  const { writeAuditLog } = await import("../repositories/audit-logs");
+  const reservation = await findActiveReservationById(reservationId);
+  const nowIso = new Date().toISOString();
+
+  await cancelReservationUseCase({
+    actorApartmentId: session.apartmentId,
+    nowIso,
+    reservation,
+    updateReservation: markReservationCancelled,
+    refundBalance: refundWeeklyBalanceForReservation,
+    audit: async (cancelledReservationId, refundMinutes) => {
+      await writeAuditLog({
+        actorKind: "apartment",
+        actorId: session.apartmentId,
+        action: "reservation.cancelled",
+        entityType: "reservation",
+        entityId: cancelledReservationId,
+        metadata: { refundMinutes },
+      });
+    },
+  });
+
+  revalidatePath("/reservations");
+  revalidatePath("/");
 }

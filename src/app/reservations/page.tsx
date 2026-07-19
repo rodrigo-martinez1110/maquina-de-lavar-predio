@@ -5,6 +5,7 @@ import { createReservationFromForm } from "../../lib/actions/reservation-form";
 import { getApartmentSession } from "../../lib/auth/apartment-session";
 import { buildDaySlots, buildFreeWindows } from "../../lib/domain/schedule";
 import { listReservationsForDay } from "../../lib/repositories/reservations";
+import { MyReservations } from "./my-reservations";
 import { ReservationForm } from "./reservation-form";
 
 type ReservationsPageProps = {
@@ -38,6 +39,9 @@ export default async function ReservationsPage({ searchParams }: ReservationsPag
   const reservations = await listReservationsForDay(selectedDate);
   const slots = buildDaySlots({ date: selectedDate, reservations });
   const freeWindows = buildFreeWindows(slots);
+  const myReservations = reservations.filter(
+    (reservation) => reservation.apartmentId === session.apartmentId,
+  );
   const busySlotsCount = slots.filter((slot) => slot.status === "busy").length;
   const freeSlotsCount = slots.length - busySlotsCount;
 
@@ -79,6 +83,7 @@ export default async function ReservationsPage({ searchParams }: ReservationsPag
         </div>
       </header>
       <ReservationDayOverview date={selectedDate} freeWindows={freeWindows} slots={slots} />
+      <MyReservations reservations={myReservations} />
       <ReservationForm
         action={createReservationFromForm}
         defaultDate={selectedDate}

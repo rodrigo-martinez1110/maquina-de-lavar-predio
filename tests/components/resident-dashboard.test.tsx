@@ -1,5 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import { MyReservations } from "../../src/app/reservations/my-reservations";
 import { AppNav } from "../../src/components/AppNav";
 import { BalanceCard } from "../../src/components/BalanceCard";
 import { CreditForms } from "../../src/app/credits/credit-forms";
@@ -91,6 +92,29 @@ describe("resident dashboard components", () => {
     expect(markup).toContain("Avisos");
     expect(markup).toContain("Metricas");
     expect(markup).toContain("Conta");
+  });
+
+  it("renders resident reservation cancellation", () => {
+    const markup = renderToStaticMarkup(
+      <MyReservations
+        reservations={[
+          {
+            id: "reservation-1",
+            apartmentId: "apt-1",
+            apartmentNumber: 1,
+            kind: "wash_dry",
+            startsAtIso: "2026-07-20T10:00:00-03:00",
+            endsAtIso: "2026-07-20T12:00:00-03:00",
+            estimatedMinutes: 120,
+          },
+        ]}
+      />,
+    );
+
+    expect(markup).toContain("Meus agendamentos do dia");
+    expect(markup).toContain("Cancelar");
+    expect(markup).toContain('name="reservationId"');
+    expect(markup).toContain('value="reservation-1"');
   });
 
   it("defaults transfer acceptance to the full remaining request up to 2h", () => {

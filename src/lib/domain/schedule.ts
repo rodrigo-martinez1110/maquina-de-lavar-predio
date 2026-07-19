@@ -1,9 +1,11 @@
 export type ScheduleReservation = {
   id: string;
+  apartmentId: string;
   apartmentNumber: number;
   kind: "wash" | "dry" | "wash_dry" | "custom";
   startsAtIso: string;
   endsAtIso: string;
+  estimatedMinutes: number;
 };
 
 export type DaySlot =

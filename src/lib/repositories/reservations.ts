@@ -29,7 +29,7 @@ export async function listReservationsForDay(date: string): Promise<ScheduleRese
 
   const { data: reservations, error } = await supabase
     .from("reservations")
-    .select("id, apartment_id, kind, starts_at, ends_at")
+    .select("id, apartment_id, kind, starts_at, ends_at, estimated_minutes")
     .lt("starts_at", dayEndIso)
     .gt("ends_at", dayStartIso)
     .in("status", ["reserved", "in_use", "late"])
@@ -53,11 +53,32 @@ export async function listReservationsForDay(date: string): Promise<ScheduleRese
 
   return reservationRows.map((reservation) => ({
     id: reservation.id,
+    apartmentId: reservation.apartment_id,
     apartmentNumber: apartmentNumberById.get(reservation.apartment_id) ?? 0,
     kind: reservation.kind,
     startsAtIso: reservation.starts_at,
     endsAtIso: reservation.ends_at,
+    estimatedMinutes: reservation.estimated_minutes,
   }));
+}
+
+export async function findActiveReservationById(reservationId: string) {
+  const supabase = createServiceSupabaseClient();
+  const { data, error } = await supabase
+    .from("reservations")
+    .select("id, apartment_id, starts_at, estimated_minutes")
+    .eq("id", reservationId)
+    .in("status", ["reserved", "in_use", "late"])
+    .single();
+
+  if (error) throw error;
+
+  return {
+    id: data.id,
+    apartmentId: data.apartment_id,
+    startsAtIso: data.starts_at,
+    estimatedMinutes: data.estimated_minutes,
+  };
 }
 
 export async function insertReservation(row: {
@@ -136,6 +157,23 @@ export async function updateReservationStatus(
     .from("reservations")
     .update({ status, updated_at: new Date().toISOString() })
     .eq("id", id);
+
+  if (error) throw error;
+}
+
+export async function markReservationCancelled(input: {
+  reservationId: string;
+  cancelledAtIso: string;
+}) {
+  const supabase = createServiceSupabaseClient();
+  const { error } = await supabase
+    .from("reservations")
+    .update({
+      status: "cancelled",
+      cancelled_at: input.cancelledAtIso,
+      updated_at: input.cancelledAtIso,
+    })
+    .eq("id", input.reservationId);
 
   if (error) throw error;
 }
