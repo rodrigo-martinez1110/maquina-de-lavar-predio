@@ -11,12 +11,14 @@ describe("transfer actions", () => {
         id: "transfer-1",
         apartmentId: "apt-requester",
         kind: "request",
+        weekStart: "2026-07-13",
         remainingMinutes: 180,
       },
       actorApartmentId: "apt-helper",
       minutes: 60,
       insertAcceptance: async (row) => row,
       updateTransfer: async (row) => row,
+      updateBalances: async (row) => row,
       notify,
       audit,
     });
@@ -24,5 +26,33 @@ describe("transfer actions", () => {
     expect(result).toEqual({ remainingMinutes: 120, status: "partially_filled" });
     expect(notify).toHaveBeenCalledWith("apt-requester", 60);
     expect(audit).toHaveBeenCalledWith("transfer-1", 60);
+  });
+
+  it("moves accepted request minutes from helper to requester balance", async () => {
+    const updateBalances = vi.fn(async (row) => row);
+
+    await acceptTransferUseCase({
+      transfer: {
+        id: "transfer-1",
+        apartmentId: "apt-requester",
+        kind: "request",
+        weekStart: "2026-07-13",
+        remainingMinutes: 60,
+      },
+      actorApartmentId: "apt-helper",
+      minutes: 60,
+      insertAcceptance: async (row) => row,
+      updateTransfer: async (row) => row,
+      updateBalances,
+      notify: async () => undefined,
+      audit: async () => undefined,
+    });
+
+    expect(updateBalances).toHaveBeenCalledWith({
+      fromApartmentId: "apt-helper",
+      toApartmentId: "apt-requester",
+      weekStart: "2026-07-13",
+      minutes: 60,
+    });
   });
 });
