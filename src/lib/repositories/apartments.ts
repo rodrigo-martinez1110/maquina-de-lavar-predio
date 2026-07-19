@@ -23,6 +23,20 @@ export async function findApartmentByNumber(number: number): Promise<ApartmentFo
   return { id: data.id, number: data.number, pinHash: data.pin_hash };
 }
 
+export async function findApartmentPinHashById(apartmentId: string) {
+  const supabase = createServiceSupabaseClient();
+  const { data, error } = await supabase
+    .from("apartments")
+    .select("pin_hash")
+    .eq("id", apartmentId)
+    .eq("is_active", true)
+    .single();
+
+  if (error || !data) return null;
+
+  return data.pin_hash;
+}
+
 export async function listApartmentsForAdmin(): Promise<ApartmentAdminRow[]> {
   const supabase = createServiceSupabaseClient();
   const { data, error } = await supabase
@@ -66,4 +80,8 @@ export async function updateApartmentSettings(input: {
   const { error } = await supabase.from("apartments").update(patch).eq("id", input.apartmentId);
 
   if (error) throw error;
+}
+
+export async function updateApartmentPinHash(apartmentId: string, pinHash: string) {
+  await updateApartmentSettings({ apartmentId, pinHash });
 }

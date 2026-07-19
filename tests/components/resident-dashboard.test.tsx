@@ -30,10 +30,12 @@ describe("resident dashboard components", () => {
     expect(markup).toContain('href="/credits"');
     expect(markup).toContain('href="/notifications"');
     expect(markup).toContain('href="/metrics"');
+    expect(markup).toContain('href="/account"');
     expect(markup).toContain("Inicio");
     expect(markup).toContain("Agenda");
     expect(markup).toContain("Horas");
     expect(markup).toContain("Avisos");
     expect(markup).toContain("Metricas");
+    expect(markup).toContain("Conta");
   });
 });

@@ -12,21 +12,21 @@ export function LoginForm(props: {
   const [state, formAction, isPending] = useActionState(props.action, initialState);
 
   return (
-    <form action={formAction} className="flex flex-col gap-3">
-      <label className="text-sm font-medium" htmlFor="apartmentNumber">
+    <form action={formAction} className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <label className="text-sm font-medium text-slate-700" htmlFor="apartmentNumber">
         Apartamento
       </label>
-      <input className="rounded border p-3" id="apartmentNumber" name="apartmentNumber" inputMode="numeric" required />
-      <label className="text-sm font-medium" htmlFor="pin">
+      <input className="min-h-11 rounded-md border border-slate-300 px-3 text-base outline-none focus:border-slate-900" id="apartmentNumber" name="apartmentNumber" inputMode="numeric" required />
+      <label className="text-sm font-medium text-slate-700" htmlFor="pin">
         PIN
       </label>
-      <input className="rounded border p-3" id="pin" name="pin" type="password" required />
+      <input className="min-h-11 rounded-md border border-slate-300 px-3 text-base outline-none focus:border-slate-900" id="pin" name="pin" type="password" required />
       {state.error ? (
-        <p className="text-sm font-medium text-red-700" role="alert">
+        <p className="rounded-md bg-red-50 px-3 py-2 text-sm font-medium text-red-700" role="alert">
           {AUTH_ERROR_MESSAGE}
         </p>
       ) : null}
-      <button className="rounded bg-slate-900 p-3 text-white disabled:opacity-60" disabled={isPending} type="submit">
+      <button className="min-h-11 rounded-md bg-slate-950 px-4 font-medium text-white disabled:opacity-60" disabled={isPending} type="submit">
         Entrar
       </button>
     </form>

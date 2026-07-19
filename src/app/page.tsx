@@ -8,20 +8,28 @@ export default async function HomePage() {
   if (!session) redirect("/login");
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-5xl flex-col gap-6 p-4">
-      <h1 className="text-2xl font-semibold">Lava e Seca</h1>
-      <p className="text-sm font-medium text-slate-900">
-        Apartamento {session.apartmentNumber}
-      </p>
+    <main className="mx-auto flex min-h-screen max-w-5xl flex-col gap-6 p-4 pb-24">
+      <header className="rounded-2xl bg-slate-950 p-5 text-white shadow-sm">
+        <p className="text-sm font-medium text-slate-300">
+          Apartamento {session.apartmentNumber}
+        </p>
+        <h1 className="mt-1 text-3xl font-semibold">Lava e Seca</h1>
+        <p className="mt-3 max-w-xl text-sm text-slate-300">
+          Reserve, acompanhe seu saldo e combine horarios sem confusao.
+        </p>
+      </header>
       <BalanceCard availableMinutes={360} />
       <section className="grid grid-cols-2 gap-3">
         <a
-          className="rounded bg-slate-900 p-4 text-center text-white"
+          className="rounded-xl bg-slate-950 p-4 text-center font-medium text-white shadow-sm"
           href="/reservations?now=1"
         >
           Usar agora
         </a>
-        <a className="rounded border p-4 text-center" href="/reservations">
+        <a
+          className="rounded-xl border border-slate-200 bg-white p-4 text-center font-medium text-slate-800 shadow-sm"
+          href="/reservations"
+        >
           Reservar horario
         </a>
       </section>

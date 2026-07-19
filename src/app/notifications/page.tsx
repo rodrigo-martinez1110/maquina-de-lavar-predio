@@ -10,10 +10,10 @@ export default async function NotificationsPage() {
   const notifications = await listApartmentNotifications(session.apartmentId);
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-5xl flex-col gap-6 p-4">
-      <header className="space-y-1">
+    <main className="mx-auto flex min-h-screen max-w-5xl flex-col gap-6 p-4 pb-24">
+      <header className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
         <h1 className="text-2xl font-semibold">Avisos</h1>
-        <p className="text-sm text-slate-600">
+        <p className="mt-2 text-sm text-slate-600">
           Notificacoes sobre transferencias, atrasos e ajustes do apartamento{" "}
           {session.apartmentNumber}.
         </p>
@@ -21,12 +21,12 @@ export default async function NotificationsPage() {
 
       <section className="space-y-3">
         {notifications.length === 0 ? (
-          <p className="rounded border border-dashed p-4 text-sm text-slate-600">
+          <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-5 text-sm text-slate-600">
             Nenhum aviso por enquanto.
           </p>
         ) : (
           notifications.map((notification) => (
-            <article className="rounded border p-4" key={notification.id}>
+            <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm" key={notification.id}>
               <div className="flex items-start justify-between gap-3">
                 <h2 className="font-medium">{notification.title}</h2>
                 <time className="shrink-0 text-xs text-slate-500">
