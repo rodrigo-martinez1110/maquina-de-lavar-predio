@@ -19,6 +19,12 @@ export type DaySlot =
       kind: ScheduleReservation["kind"];
     };
 
+export type FreeWindow = {
+  startTime: string;
+  endTime: string;
+  durationMinutes: number;
+};
+
 const FIRST_SLOT_MINUTES = 7 * 60;
 const LAST_SLOT_START_MINUTES = 22 * 60 + 30;
 const SLOT_MINUTES = 30;
@@ -32,6 +38,11 @@ function timeFromMinutes(minutes: number): string {
 function minutesOfDayFromIso(iso: string): number {
   const timeText = iso.slice(11, 16);
   const [hourText, minuteText] = timeText.split(":");
+  return Number(hourText) * 60 + Number(minuteText);
+}
+
+function minutesFromTime(time: string): number {
+  const [hourText, minuteText] = time.split(":");
   return Number(hourText) * 60 + Number(minuteText);
 }
 
@@ -69,4 +80,41 @@ export function buildDaySlots(input: {
   }
 
   return slots;
+}
+
+export function buildFreeWindows(slots: DaySlot[]): FreeWindow[] {
+  const windows: FreeWindow[] = [];
+  let windowStartMinutes: number | null = null;
+  let lastFreeSlotMinutes: number | null = null;
+
+  for (const slot of slots) {
+    const slotMinutes = minutesFromTime(slot.time);
+    if (slot.status === "free") {
+      windowStartMinutes ??= slotMinutes;
+      lastFreeSlotMinutes = slotMinutes;
+      continue;
+    }
+
+    if (windowStartMinutes !== null && lastFreeSlotMinutes !== null) {
+      const endMinutes = lastFreeSlotMinutes + SLOT_MINUTES;
+      windows.push({
+        startTime: timeFromMinutes(windowStartMinutes),
+        endTime: timeFromMinutes(endMinutes),
+        durationMinutes: endMinutes - windowStartMinutes,
+      });
+      windowStartMinutes = null;
+      lastFreeSlotMinutes = null;
+    }
+  }
+
+  if (windowStartMinutes !== null && lastFreeSlotMinutes !== null) {
+    const endMinutes = lastFreeSlotMinutes + SLOT_MINUTES;
+    windows.push({
+      startTime: timeFromMinutes(windowStartMinutes),
+      endTime: timeFromMinutes(endMinutes),
+      durationMinutes: endMinutes - windowStartMinutes,
+    });
+  }
+
+  return windows;
 }

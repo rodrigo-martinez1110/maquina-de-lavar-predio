@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildDaySlots } from "../../src/lib/domain/schedule";
+import { buildDaySlots, buildFreeWindows } from "../../src/lib/domain/schedule";
 
 describe("schedule domain", () => {
   it("builds every reservable 30 minute slot in the day", () => {
@@ -37,5 +37,25 @@ describe("schedule domain", () => {
     expect(slots.find((slot) => slot.time === "11:00")).toMatchObject({
       status: "free",
     });
+  });
+
+  it("groups adjacent free slots into readable windows", () => {
+    const slots = buildDaySlots({
+      date: "2026-07-19",
+      reservations: [
+        {
+          id: "reservation-1",
+          apartmentNumber: 1,
+          kind: "wash_dry",
+          startsAtIso: "2026-07-19T10:00:00-03:00",
+          endsAtIso: "2026-07-19T11:00:00-03:00",
+        },
+      ],
+    });
+
+    expect(buildFreeWindows(slots)).toEqual([
+      { startTime: "07:00", endTime: "10:00", durationMinutes: 180 },
+      { startTime: "11:00", endTime: "23:00", durationMinutes: 720 },
+    ]);
   });
 });

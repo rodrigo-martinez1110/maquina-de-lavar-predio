@@ -1,15 +1,16 @@
 import { redirect } from "next/navigation";
 import { AppNav } from "../../components/AppNav";
-import { ReservationTimeline } from "../../components/ReservationTimeline";
+import { ReservationDayOverview } from "../../components/ReservationDayOverview";
 import { createReservationFromForm } from "../../lib/actions/reservation-form";
 import { getApartmentSession } from "../../lib/auth/apartment-session";
-import { buildDaySlots } from "../../lib/domain/schedule";
+import { buildDaySlots, buildFreeWindows } from "../../lib/domain/schedule";
 import { listReservationsForDay } from "../../lib/repositories/reservations";
 import { ReservationForm } from "./reservation-form";
 
 type ReservationsPageProps = {
   searchParams?: Promise<{
     date?: string;
+    start?: string;
   }>;
 };
 
@@ -23,14 +24,20 @@ function dateFromSearchParam(date: string | undefined) {
   return /^\d{4}-\d{2}-\d{2}$/.test(date ?? "") ? String(date) : todayInSaoPaulo();
 }
 
+function startFromSearchParam(start: string | undefined) {
+  return /^\d{2}:\d{2}$/.test(start ?? "") ? String(start) : "10:00";
+}
+
 export default async function ReservationsPage({ searchParams }: ReservationsPageProps) {
   const session = await getApartmentSession();
   if (!session) redirect("/login");
 
   const params = searchParams ? await searchParams : {};
   const selectedDate = dateFromSearchParam(params.date);
+  const selectedStart = startFromSearchParam(params.start);
   const reservations = await listReservationsForDay(selectedDate);
   const slots = buildDaySlots({ date: selectedDate, reservations });
+  const freeWindows = buildFreeWindows(slots);
   const busySlotsCount = slots.filter((slot) => slot.status === "busy").length;
   const freeSlotsCount = slots.length - busySlotsCount;
 
@@ -71,8 +78,12 @@ export default async function ReservationsPage({ searchParams }: ReservationsPag
           </div>
         </div>
       </header>
-      <ReservationForm action={createReservationFromForm} defaultDate={selectedDate} />
-      <ReservationTimeline slots={slots} />
+      <ReservationDayOverview date={selectedDate} freeWindows={freeWindows} slots={slots} />
+      <ReservationForm
+        action={createReservationFromForm}
+        defaultDate={selectedDate}
+        defaultStartTime={selectedStart}
+      />
       <AppNav />
     </main>
   );

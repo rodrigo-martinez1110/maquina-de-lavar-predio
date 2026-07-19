@@ -8,6 +8,7 @@ const initialState: ReservationFormState = {};
 export function ReservationForm(props: {
   action: (previousState: ReservationFormState, formData: FormData) => Promise<ReservationFormState>;
   defaultDate: string;
+  defaultStartTime?: string;
 }) {
   const [state, formAction, isPending] = useActionState(props.action, initialState);
 
@@ -28,7 +29,7 @@ export function ReservationForm(props: {
           Inicio
           <select
             className="min-h-11 rounded-md border border-slate-300 bg-white px-3 text-base outline-none focus:border-slate-900"
-            defaultValue="10:00"
+            defaultValue={props.defaultStartTime ?? "10:00"}
             name="startTime"
             required
           >

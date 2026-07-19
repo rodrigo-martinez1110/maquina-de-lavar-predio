@@ -2,6 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { AppNav } from "../../src/components/AppNav";
 import { BalanceCard } from "../../src/components/BalanceCard";
+import { ReservationDayOverview } from "../../src/components/ReservationDayOverview";
 import { ReservationTimeline } from "../../src/components/ReservationTimeline";
 
 describe("resident dashboard components", () => {
@@ -43,6 +44,34 @@ describe("resident dashboard components", () => {
     );
 
     expect(markup).toContain("10:00 - ocupado");
+    expect(markup).toContain("Apt 1");
+  });
+
+  it("renders a compact day overview with free window links", () => {
+    const markup = renderToStaticMarkup(
+      <ReservationDayOverview
+        date="2026-07-19"
+        slots={[
+          { time: "07:00", status: "free" },
+          { time: "07:30", status: "free" },
+          {
+            time: "08:00",
+            status: "busy",
+            apartmentNumber: 1,
+            reservationId: "reservation-1",
+            kind: "wash_dry",
+          },
+        ]}
+        freeWindows={[
+          { startTime: "07:00", endTime: "08:00", durationMinutes: 60 },
+        ]}
+      />,
+    );
+
+    expect(markup).toContain("Visao rapida");
+    expect(markup).toContain("07:00-08:00");
+    expect(markup).toContain("1h livre");
+    expect(markup).toContain("href=\"/reservations?date=2026-07-19&amp;start=07%3A00\"");
     expect(markup).toContain("Apt 1");
   });
 
