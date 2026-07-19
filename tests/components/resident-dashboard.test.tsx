@@ -2,6 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { AppNav } from "../../src/components/AppNav";
 import { BalanceCard } from "../../src/components/BalanceCard";
+import { CreditForms } from "../../src/app/credits/credit-forms";
 import { ReservationDayOverview } from "../../src/components/ReservationDayOverview";
 import { ReservationTimeline } from "../../src/components/ReservationTimeline";
 
@@ -90,5 +91,30 @@ describe("resident dashboard components", () => {
     expect(markup).toContain("Avisos");
     expect(markup).toContain("Metricas");
     expect(markup).toContain("Conta");
+  });
+
+  it("defaults transfer acceptance to the full remaining request up to 2h", () => {
+    const markup = renderToStaticMarkup(
+      <CreditForms
+        currentApartmentId="apt-2"
+        weekStart="2026-07-13"
+        transfers={[
+          {
+            id: "transfer-1",
+            apartmentId: "apt-1",
+            apartmentNumber: 1,
+            kind: "request",
+            status: "open",
+            weekStart: "2026-07-13",
+            totalMinutes: 120,
+            remainingMinutes: 120,
+            createdAt: "2026-07-13T10:00:00Z",
+          },
+        ]}
+      />,
+    );
+
+    expect(markup).toContain("2h restantes");
+    expect(markup).toContain('<option value="120" selected="">2h</option>');
   });
 });

@@ -19,6 +19,7 @@ describe("transfer actions", () => {
       insertAcceptance: async (row) => row,
       updateTransfer: async (row) => row,
       updateBalances: async (row) => row,
+      getAvailableMinutes: async () => 360,
       notify,
       audit,
     });
@@ -44,6 +45,7 @@ describe("transfer actions", () => {
       insertAcceptance: async (row) => row,
       updateTransfer: async (row) => row,
       updateBalances,
+      getAvailableMinutes: async () => 360,
       notify: async () => undefined,
       audit: async () => undefined,
     });
@@ -54,5 +56,27 @@ describe("transfer actions", () => {
       weekStart: "2026-07-13",
       minutes: 60,
     });
+  });
+
+  it("blocks accepted offer when owner no longer has enough balance", async () => {
+    await expect(
+      acceptTransferUseCase({
+        transfer: {
+          id: "transfer-1",
+          apartmentId: "apt-owner",
+          kind: "offer",
+          weekStart: "2026-07-13",
+          remainingMinutes: 120,
+        },
+        actorApartmentId: "apt-receiver",
+        minutes: 120,
+        insertAcceptance: async (row) => row,
+        updateTransfer: async (row) => row,
+        updateBalances: async (row) => row,
+        getAvailableMinutes: async () => 60,
+        notify: async () => undefined,
+        audit: async () => undefined,
+      }),
+    ).rejects.toThrow("Saldo insuficiente para ceder horas");
   });
 });

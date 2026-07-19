@@ -77,6 +77,7 @@ function AcceptTransferForm(props: {
   const [state, formAction, isPending] = useActionState(acceptTransferFromForm, initialState);
   const isOwnTransfer = props.transfer.apartmentId === props.currentApartmentId;
   const actionText = props.transfer.kind === "offer" ? "Pegar horas" : "Ajudar";
+  const defaultAcceptanceMinutes = Math.min(120, props.transfer.remainingMinutes);
 
   return (
     <form action={formAction} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -100,7 +101,7 @@ function AcceptTransferForm(props: {
       <div className="mt-3 grid grid-cols-[1fr_auto] gap-2">
         <select
           className="min-h-11 rounded-md border border-slate-300 bg-white px-3"
-          defaultValue={Math.min(60, props.transfer.remainingMinutes)}
+          defaultValue={defaultAcceptanceMinutes}
           disabled={isOwnTransfer || isPending}
           name="minutes"
         >

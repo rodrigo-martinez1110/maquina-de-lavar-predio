@@ -39,6 +39,7 @@ export async function acceptTransferUseCase(input: {
     weekStart: string;
     minutes: number;
   }) => Promise<unknown>;
+  getAvailableMinutes: (apartmentId: string) => Promise<number>;
   notify: (apartmentId: string, minutes: number) => Promise<void>;
   audit: (transferId: string, minutes: number) => Promise<void>;
 }) {
@@ -50,6 +51,10 @@ export async function acceptTransferUseCase(input: {
     input.transfer.kind === "request" ? input.actorApartmentId : input.transfer.apartmentId;
   const toApartmentId =
     input.transfer.kind === "request" ? input.transfer.apartmentId : input.actorApartmentId;
+  const availableMinutes = await input.getAvailableMinutes(fromApartmentId);
+  if (availableMinutes < input.minutes) {
+    throw new Error("Saldo insuficiente para ceder horas");
+  }
 
   await input.insertAcceptance({
     transferId: input.transfer.id,
@@ -169,6 +174,7 @@ export async function acceptTransferAction(formData: FormData) {
     updateTransferRemaining,
   } = await import("../repositories/transfers");
   const { applyAcceptedTransferToBalances } = await import("../repositories/weekly-balances");
+  const { getApartmentWeeklyAvailableMinutes } = await import("../repositories/weekly-balances");
   const { createNotification } = await import("../repositories/notifications");
   const { writeAuditLog } = await import("../repositories/audit-logs");
 
@@ -184,6 +190,11 @@ export async function acceptTransferAction(formData: FormData) {
     insertAcceptance: insertTransferAcceptance,
     updateTransfer: updateTransferRemaining,
     updateBalances: applyAcceptedTransferToBalances,
+    getAvailableMinutes: async (apartmentId) =>
+      getApartmentWeeklyAvailableMinutes({
+        apartmentId,
+        date: transfer.weekStart,
+      }),
     notify: async (apartmentId, acceptedMinutes) => {
       await createNotification({
         apartmentId,
