@@ -1,5 +1,6 @@
 import { readFileSync } from "fs";
 import { describe, expect, it, vi } from "vitest";
+import { messageFromUnknownError } from "../../src/lib/domain/action-errors";
 import {
   availableMinutesFromWeeklyBalance,
   buildReservationWindowFromForm,
@@ -30,6 +31,12 @@ describe("reservation actions", () => {
         durationMinutes: "120",
       }),
     ).toThrow("Reservas devem terminar ate 23:00");
+  });
+
+  it("maps Supabase error objects to form messages", () => {
+    expect(messageFromUnknownError({ message: "Saldo semanal nao encontrado" })).toBe(
+      "Saldo semanal nao encontrado",
+    );
   });
 
   it("creates reservation when balance and window are valid", async () => {
@@ -149,5 +156,13 @@ describe("reservation actions", () => {
     expect(sql).toContain("reserved_minutes = reserved_minutes + v_estimated_minutes");
     expect(sql).toContain("insert into audit_logs");
     expect(sql).toContain("to service_role");
+  });
+
+  it("defines SQL migration that creates weekly balance on first reservation", () => {
+    const sql = readFileSync("supabase/migrations/0003_auto_create_weekly_balance.sql", "utf8");
+
+    expect(sql).toContain("insert into weekly_balances");
+    expect(sql).toContain("on conflict (apartment_id, week_start) do nothing");
+    expect(sql).toContain("360 + greatest(0, v_apartment.resident_count - 1) * 30");
   });
 });

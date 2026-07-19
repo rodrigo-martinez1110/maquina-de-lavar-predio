@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getApartmentSession } from "../auth/apartment-session";
+import { messageFromUnknownError } from "../domain/action-errors";
 import {
   buildReservationWindowFromForm,
   createReservationActionUseCase,
@@ -38,8 +39,7 @@ export async function createReservationFromForm(
       createReservationAtomically: createReservationWithBalance,
     });
   } catch (error) {
-    if (error instanceof Error) return { error: error.message };
-    throw error;
+    return { error: messageFromUnknownError(error) };
   }
 
   revalidatePath("/reservations");
