@@ -37,6 +37,25 @@ export async function createTransfer(input: {
   return data;
 }
 
+export async function findOpenTransferForApartmentWeekKind(input: {
+  apartmentId: string;
+  kind: "offer" | "request";
+  weekStart: string;
+}): Promise<{ id: string } | null> {
+  const supabase = createServiceSupabaseClient();
+  const { data, error } = await supabase
+    .from("credit_transfers")
+    .select("id")
+    .eq("apartment_id", input.apartmentId)
+    .eq("kind", input.kind)
+    .eq("week_start", input.weekStart)
+    .in("status", ["open", "partially_filled"])
+    .maybeSingle();
+
+  if (error) throw error;
+  return data;
+}
+
 export async function listOpenTransfersForWeek(weekStart: string): Promise<OpenTransferListItem[]> {
   const supabase = createServiceSupabaseClient();
   const { data: transfers, error } = await supabase

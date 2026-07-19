@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import {
   acceptTransferFromForm,
+  cancelTransferFromForm,
   createHourOfferFromForm,
   createHourRequestFromForm,
   type TransferFormState,
@@ -75,13 +76,13 @@ function AcceptTransferForm(props: {
   transfer: OpenTransferListItem;
 }) {
   const [state, formAction, isPending] = useActionState(acceptTransferFromForm, initialState);
+  const [cancelState, cancelAction, isCancelling] = useActionState(cancelTransferFromForm, initialState);
   const isOwnTransfer = props.transfer.apartmentId === props.currentApartmentId;
   const actionText = props.transfer.kind === "offer" ? "Pegar horas" : "Ajudar";
   const defaultAcceptanceMinutes = Math.min(120, props.transfer.remainingMinutes);
 
   return (
-    <form action={formAction} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <input name="transferId" type="hidden" value={props.transfer.id} />
+    <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-sm font-semibold text-slate-950">
@@ -98,31 +99,48 @@ function AcceptTransferForm(props: {
         ) : null}
       </div>
 
-      <div className="mt-3 grid grid-cols-[1fr_auto] gap-2">
-        <select
-          className="min-h-11 rounded-md border border-slate-300 bg-white px-3"
-          defaultValue={defaultAcceptanceMinutes}
-          disabled={isOwnTransfer || isPending}
-          name="minutes"
-        >
-          {[30, 60, 90, 120]
-            .filter((minutes) => minutes <= props.transfer.remainingMinutes)
-            .map((minutes) => (
-              <option key={minutes} value={minutes}>
-                {formatMinutes(minutes)}
-              </option>
-            ))}
-        </select>
-        <button
-          className="min-h-11 rounded-md bg-slate-950 px-4 text-sm font-semibold text-white disabled:opacity-50"
-          disabled={isOwnTransfer || isPending}
-          type="submit"
-        >
-          {isPending ? "..." : actionText}
-        </button>
-      </div>
-      <StateMessage state={state} />
-    </form>
+      {isOwnTransfer ? (
+        <form action={cancelAction} className="mt-3">
+          <input name="transferId" type="hidden" value={props.transfer.id} />
+          <button
+            className="min-h-11 w-full rounded-md border border-rose-200 bg-white px-4 text-sm font-semibold text-rose-700 disabled:opacity-50"
+            disabled={isCancelling}
+            type="submit"
+          >
+            {isCancelling ? "Cancelando..." : "Cancelar"}
+          </button>
+          <StateMessage state={cancelState} />
+        </form>
+      ) : (
+        <form action={formAction}>
+          <input name="transferId" type="hidden" value={props.transfer.id} />
+          <div className="mt-3 grid grid-cols-[1fr_auto] gap-2">
+            <select
+              className="min-h-11 rounded-md border border-slate-300 bg-white px-3"
+              defaultValue={defaultAcceptanceMinutes}
+              disabled={isPending}
+              name="minutes"
+            >
+              {[30, 60, 90, 120]
+                .filter((minutes) => minutes <= props.transfer.remainingMinutes)
+                .map((minutes) => (
+                  <option key={minutes} value={minutes}>
+                    {formatMinutes(minutes)}
+                  </option>
+                ))}
+            </select>
+            <button
+              className="min-h-11 rounded-md bg-slate-950 px-4 text-sm font-semibold text-white disabled:opacity-50"
+              disabled={isPending}
+              type="submit"
+            >
+              {isPending ? "..." : actionText}
+            </button>
+          </div>
+          <StateMessage state={state} />
+        </form>
+      )}
+    </article>
   );
 }
 

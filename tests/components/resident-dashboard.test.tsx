@@ -117,4 +117,29 @@ describe("resident dashboard components", () => {
     expect(markup).toContain("2h restantes");
     expect(markup).toContain('<option value="120" selected="">2h</option>');
   });
+
+  it("renders cancel for the resident own open transfer", () => {
+    const markup = renderToStaticMarkup(
+      <CreditForms
+        currentApartmentId="apt-1"
+        weekStart="2026-07-13"
+        transfers={[
+          {
+            id: "transfer-1",
+            apartmentId: "apt-1",
+            apartmentNumber: 1,
+            kind: "request",
+            status: "open",
+            weekStart: "2026-07-13",
+            totalMinutes: 120,
+            remainingMinutes: 120,
+            createdAt: "2026-07-13T10:00:00Z",
+          },
+        ]}
+      />,
+    );
+
+    expect(markup).toContain("Cancelar");
+    expect(markup).not.toContain("Ajudar");
+  });
 });

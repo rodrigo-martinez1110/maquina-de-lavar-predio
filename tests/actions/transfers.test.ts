@@ -1,7 +1,86 @@
 import { describe, expect, it, vi } from "vitest";
-import { acceptTransferUseCase } from "../../src/lib/actions/transfers";
+import {
+  acceptTransferUseCase,
+  cancelTransferUseCase,
+  createTransferUseCase,
+} from "../../src/lib/actions/transfers";
 
 describe("transfer actions", () => {
+  it("blocks duplicate open requests in the same week", async () => {
+    await expect(
+      createTransferUseCase({
+        apartmentId: "apt-5",
+        kind: "request",
+        weekStart: "2026-07-13",
+        totalMinutes: 120,
+        findExistingOpenTransfer: async () => ({ id: "existing-transfer" }),
+        createTransfer: async (row) => row,
+        audit: async () => undefined,
+      }),
+    ).rejects.toThrow("Ja existe um pedido aberto nesta semana");
+  });
+
+  it("creates a request when there is no open request in the week", async () => {
+    const createTransfer = vi.fn(async () => ({ id: "transfer-1" }));
+
+    await createTransferUseCase({
+      apartmentId: "apt-5",
+      kind: "request",
+      weekStart: "2026-07-13",
+      totalMinutes: 120,
+      findExistingOpenTransfer: async () => null,
+      createTransfer,
+      audit: async () => undefined,
+    });
+
+    expect(createTransfer).toHaveBeenCalledWith({
+      apartmentId: "apt-5",
+      kind: "request",
+      weekStart: "2026-07-13",
+      totalMinutes: 120,
+    });
+  });
+
+  it("lets the owner cancel an open transfer", async () => {
+    const updateTransfer = vi.fn(async (row) => row);
+
+    await cancelTransferUseCase({
+      transfer: {
+        id: "transfer-1",
+        apartmentId: "apt-5",
+        kind: "request",
+        weekStart: "2026-07-13",
+        remainingMinutes: 120,
+      },
+      actorApartmentId: "apt-5",
+      updateTransfer,
+      audit: async () => undefined,
+    });
+
+    expect(updateTransfer).toHaveBeenCalledWith({
+      transferId: "transfer-1",
+      remainingMinutes: 120,
+      status: "cancelled",
+    });
+  });
+
+  it("blocks cancelling another apartment transfer", async () => {
+    await expect(
+      cancelTransferUseCase({
+        transfer: {
+          id: "transfer-1",
+          apartmentId: "apt-5",
+          kind: "request",
+          weekStart: "2026-07-13",
+          remainingMinutes: 120,
+        },
+        actorApartmentId: "apt-6",
+        updateTransfer: async (row) => row,
+        audit: async () => undefined,
+      }),
+    ).rejects.toThrow("Nao e possivel cancelar pedido de outro apartamento");
+  });
+
   it("accepts part of an open request", async () => {
     const notify = vi.fn(async () => undefined);
     const audit = vi.fn(async () => undefined);

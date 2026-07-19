@@ -13,10 +13,75 @@ type TransferRow = {
   remainingMinutes: number;
 };
 
+type TransferKind = "offer" | "request";
+
 export type TransferFormState = {
   error?: string;
   success?: string;
 };
+
+export async function createTransferUseCase(input: {
+  apartmentId: string;
+  kind: TransferKind;
+  weekStart: string;
+  totalMinutes: number;
+  findExistingOpenTransfer: (row: {
+    apartmentId: string;
+    kind: TransferKind;
+    weekStart: string;
+  }) => Promise<{ id: string } | null>;
+  createTransfer: (row: {
+    apartmentId: string;
+    kind: TransferKind;
+    weekStart: string;
+    totalMinutes: number;
+  }) => Promise<{ id: string }>;
+  audit: (transferId: string, minutes: number) => Promise<void>;
+}) {
+  const existing = await input.findExistingOpenTransfer({
+    apartmentId: input.apartmentId,
+    kind: input.kind,
+    weekStart: input.weekStart,
+  });
+  if (existing) {
+    throw new Error(
+      input.kind === "request"
+        ? "Ja existe um pedido aberto nesta semana"
+        : "Ja existe uma oferta aberta nesta semana",
+    );
+  }
+
+  const transfer = await input.createTransfer({
+    apartmentId: input.apartmentId,
+    kind: input.kind,
+    weekStart: input.weekStart,
+    totalMinutes: input.totalMinutes,
+  });
+  await input.audit(transfer.id, input.totalMinutes);
+  return transfer;
+}
+
+export async function cancelTransferUseCase(input: {
+  transfer: TransferRow;
+  actorApartmentId: string;
+  updateTransfer: (row: {
+    transferId: string;
+    remainingMinutes: number;
+    status: TransferStatus;
+  }) => Promise<unknown>;
+  audit: (transferId: string) => Promise<void>;
+}) {
+  if (input.transfer.apartmentId !== input.actorApartmentId) {
+    throw new Error("Nao e possivel cancelar pedido de outro apartamento");
+  }
+
+  await input.updateTransfer({
+    transferId: input.transfer.id,
+    remainingMinutes: input.transfer.remainingMinutes,
+    status: "cancelled",
+  });
+  await input.audit(input.transfer.id);
+}
 
 export async function acceptTransferUseCase(input: {
   transfer: TransferRow;
@@ -95,21 +160,26 @@ function readWeekStart(formData: FormData): string {
 export async function createHourOffer(formData: FormData) {
   const session = await getApartmentSession();
   if (!session) throw new Error("Sessao expirada");
-  const { createTransfer } = await import("../repositories/transfers");
+  const { createTransfer, findOpenTransferForApartmentWeekKind } = await import("../repositories/transfers");
   const { writeAuditLog } = await import("../repositories/audit-logs");
-  const transfer = await createTransfer({
+
+  await createTransferUseCase({
     apartmentId: session.apartmentId,
     kind: "offer",
     weekStart: readWeekStart(formData),
     totalMinutes: readTransferMinutes(formData),
-  });
-  await writeAuditLog({
-    actorKind: "apartment",
-    actorId: session.apartmentId,
-    action: "transfer.offer.created",
-    entityType: "credit_transfer",
-    entityId: transfer.id,
-    metadata: { minutes: readTransferMinutes(formData) },
+    findExistingOpenTransfer: findOpenTransferForApartmentWeekKind,
+    createTransfer,
+    audit: async (transferId, minutes) => {
+      await writeAuditLog({
+        actorKind: "apartment",
+        actorId: session.apartmentId,
+        action: "transfer.offer.created",
+        entityType: "credit_transfer",
+        entityId: transferId,
+        metadata: { minutes },
+      });
+    },
   });
   revalidatePath("/credits");
 }
@@ -129,21 +199,26 @@ export async function createHourOfferFromForm(
 export async function createHourRequest(formData: FormData) {
   const session = await getApartmentSession();
   if (!session) throw new Error("Sessao expirada");
-  const { createTransfer } = await import("../repositories/transfers");
+  const { createTransfer, findOpenTransferForApartmentWeekKind } = await import("../repositories/transfers");
   const { writeAuditLog } = await import("../repositories/audit-logs");
-  const transfer = await createTransfer({
+
+  await createTransferUseCase({
     apartmentId: session.apartmentId,
     kind: "request",
     weekStart: readWeekStart(formData),
     totalMinutes: readTransferMinutes(formData),
-  });
-  await writeAuditLog({
-    actorKind: "apartment",
-    actorId: session.apartmentId,
-    action: "transfer.request.created",
-    entityType: "credit_transfer",
-    entityId: transfer.id,
-    metadata: { minutes: readTransferMinutes(formData) },
+    findExistingOpenTransfer: findOpenTransferForApartmentWeekKind,
+    createTransfer,
+    audit: async (transferId, minutes) => {
+      await writeAuditLog({
+        actorKind: "apartment",
+        actorId: session.apartmentId,
+        action: "transfer.request.created",
+        entityType: "credit_transfer",
+        entityId: transferId,
+        metadata: { minutes },
+      });
+    },
   });
   revalidatePath("/credits");
 }
@@ -226,6 +301,48 @@ export async function acceptTransferFromForm(
   try {
     await acceptTransferAction(formData);
     return { success: "Horas transferidas" };
+  } catch (error) {
+    return { error: messageFromUnknownError(error) };
+  }
+}
+
+export async function cancelTransferAction(formData: FormData) {
+  const session = await getApartmentSession();
+  if (!session) throw new Error("Sessao expirada");
+
+  const transferId = String(formData.get("transferId") ?? "");
+  if (!transferId) throw new Error("Transferencia invalida");
+
+  const { findOpenTransferById, updateTransferRemaining } = await import("../repositories/transfers");
+  const { writeAuditLog } = await import("../repositories/audit-logs");
+  const transfer = await findOpenTransferById(transferId);
+
+  await cancelTransferUseCase({
+    transfer,
+    actorApartmentId: session.apartmentId,
+    updateTransfer: updateTransferRemaining,
+    audit: async (cancelledTransferId) => {
+      await writeAuditLog({
+        actorKind: "apartment",
+        actorId: session.apartmentId,
+        action: "transfer.cancelled",
+        entityType: "credit_transfer",
+        entityId: cancelledTransferId,
+        metadata: {},
+      });
+    },
+  });
+
+  revalidatePath("/credits");
+}
+
+export async function cancelTransferFromForm(
+  _previousState: TransferFormState,
+  formData: FormData,
+): Promise<TransferFormState> {
+  try {
+    await cancelTransferAction(formData);
+    return { success: "Pedido cancelado" };
   } catch (error) {
     return { error: messageFromUnknownError(error) };
   }
