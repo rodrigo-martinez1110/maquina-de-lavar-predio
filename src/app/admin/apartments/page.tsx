@@ -1,4 +1,8 @@
-import { resetApartmentPin, updateApartment } from "../../../lib/actions/admin-apartments";
+import {
+  adjustCurrentWeeklyBalance,
+  resetApartmentPin,
+  updateApartment,
+} from "../../../lib/actions/admin-apartments";
 import { getAdminSession } from "../../../lib/auth/admin-session";
 import { listApartmentsForAdmin } from "../../../lib/repositories/apartments";
 import { redirect } from "next/navigation";
@@ -16,7 +20,7 @@ export default async function AdminApartmentsPage() {
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold">Apartamentos</h1>
         <p className="text-sm text-slate-600">
-          Gerencie moradores, ajuste de cota e redefinicao de PIN.
+          Gerencie moradores, ajuste a semana atual e redefina PINs.
         </p>
       </header>
 
@@ -82,6 +86,35 @@ export default async function AdminApartmentsPage() {
                 </button>
               </form>
             </div>
+
+            <form action={adjustCurrentWeeklyBalance} className="mt-4 grid gap-3 rounded bg-slate-50 p-3 sm:grid-cols-[1fr_1fr_auto]">
+              <input name="apartmentId" type="hidden" value={apartment.id} />
+              <label className="grid gap-1 text-sm">
+                Ajuste pontual da semana atual
+                <select className="rounded border bg-white p-2" defaultValue="60" name="minutes" required>
+                  <option value="30">+30 min</option>
+                  <option value="60">+1h</option>
+                  <option value="120">+2h</option>
+                  <option value="-30">-30 min</option>
+                  <option value="-60">-1h</option>
+                  <option value="-120">-2h</option>
+                </select>
+              </label>
+              <label className="grid gap-1 text-sm">
+                Motivo
+                <input
+                  className="rounded border bg-white p-2"
+                  maxLength={200}
+                  name="reason"
+                  placeholder="Ex.: maquina ocupada alem do horario"
+                  required
+                  type="text"
+                />
+              </label>
+              <button className="self-end rounded bg-emerald-700 p-2 text-white" type="submit">
+                Aplicar ajuste
+              </button>
+            </form>
           </article>
         ))}
       </section>

@@ -34,6 +34,45 @@ async function ensureWeeklyBalance(input: { apartmentId: string; weekStart: stri
   if (error && error.code !== "23505") throw error;
 }
 
+function currentWeekStart() {
+  const date = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+  }).format(new Date());
+
+  return weekStartForReservation(`${date}T12:00:00-03:00`);
+}
+
+export async function adjustCurrentWeeklyBalance(input: {
+  apartmentId: string;
+  minutes: number;
+}) {
+  const supabase = createServiceSupabaseClient();
+  const weekStart = currentWeekStart();
+
+  await ensureWeeklyBalance({ apartmentId: input.apartmentId, weekStart });
+
+  const { data: balance, error: balanceError } = await supabase
+    .from("weekly_balances")
+    .select("id, manual_adjustment_minutes")
+    .eq("apartment_id", input.apartmentId)
+    .eq("week_start", weekStart)
+    .single();
+
+  if (balanceError) throw balanceError;
+
+  const { error } = await supabase
+    .from("weekly_balances")
+    .update({
+      manual_adjustment_minutes: balance.manual_adjustment_minutes + input.minutes,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", balance.id);
+
+  if (error) throw error;
+
+  return { weekStart };
+}
+
 export async function getApartmentWeeklyAvailableMinutes(input: {
   apartmentId: string;
   date: string;

@@ -13,8 +13,7 @@ export type AvailableMinutesInput = {
 };
 
 export function calculateWeeklyQuotaMinutes(input: WeeklyQuotaInput): number {
-  const extraResidents = Math.max(0, input.residentCount - 1);
-  return 360 + extraResidents * 30 + input.manualAdjustmentMinutes;
+  return 480 + input.manualAdjustmentMinutes;
 }
 
 export function calculateAvailableMinutes(input: AvailableMinutesInput): number {
