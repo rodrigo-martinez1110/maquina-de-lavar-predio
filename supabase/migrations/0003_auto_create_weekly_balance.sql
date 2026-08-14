@@ -68,7 +68,7 @@ begin
   values (
     p_apartment_id,
     v_week_start,
-    360 + greatest(0, v_apartment.resident_count - 1) * 30,
+    480,
     v_apartment.manual_adjustment_minutes
   )
   on conflict (apartment_id, week_start) do nothing;
