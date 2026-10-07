@@ -51,9 +51,9 @@ begin
       using errcode = 'P0001';
   end if;
 
-  if (p_starts_at at time zone 'America/Sao_Paulo')::time < time '07:00'
+  if (p_starts_at at time zone 'America/Sao_Paulo')::time < time '08:00'
     or (p_ends_at at time zone 'America/Sao_Paulo')::time > time '23:00' then
-    raise exception 'Reservas devem ocorrer entre 07:00 e 23:00'
+    raise exception 'Reservas devem ocorrer entre 08:00 e 23:00'
       using errcode = 'P0001';
   end if;
 

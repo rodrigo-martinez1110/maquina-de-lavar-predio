@@ -18,7 +18,7 @@ export function ReservationDayOverview(props: {
       <div className="flex items-end justify-between gap-3">
         <div>
           <p className="text-sm font-semibold text-slate-950">Visao rapida</p>
-          <p className="mt-1 text-xs text-slate-500">07:00-23:00</p>
+          <p className="mt-1 text-xs text-slate-500">08:00-23:00</p>
         </div>
         <div className="flex gap-2 text-xs font-medium">
           <span className="rounded-full bg-emerald-50 px-2 py-1 text-emerald-700">livre</span>

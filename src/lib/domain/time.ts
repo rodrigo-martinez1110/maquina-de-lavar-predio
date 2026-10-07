@@ -51,7 +51,7 @@ export function assertReservableWindow(startIso: string, endIso: string): void {
   const startHour = start.hour + start.minute / 60;
   const endHour = end.hour + end.minute / 60;
 
-  if (startHour < 7) throw new Error("Reservas devem comecar a partir de 07:00");
+  if (startHour < 8) throw new Error("Reservas devem comecar a partir de 08:00");
   if (endHour > 23 || end.date !== start.date) {
     throw new Error("Reservas devem terminar ate 23:00");
   }

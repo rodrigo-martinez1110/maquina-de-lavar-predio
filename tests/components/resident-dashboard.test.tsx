@@ -5,14 +5,15 @@ import { AppNav } from "../../src/components/AppNav";
 import { BalanceCard } from "../../src/components/BalanceCard";
 import { CreditForms } from "../../src/app/credits/credit-forms";
 import { ReservationDayOverview } from "../../src/components/ReservationDayOverview";
+import { ReservationForm } from "../../src/app/reservations/reservation-form";
 import { ReservationTimeline } from "../../src/components/ReservationTimeline";
 
 describe("resident dashboard components", () => {
   it("formats whole-hour weekly balance without minutes", () => {
-    const markup = renderToStaticMarkup(<BalanceCard availableMinutes={360} />);
+    const markup = renderToStaticMarkup(<BalanceCard availableMinutes={900} />);
 
     expect(markup).toContain("Saldo da semana");
-    expect(markup).toContain("6h");
+    expect(markup).toContain("15h");
     expect(markup).not.toContain("0min");
   });
 
@@ -28,6 +29,20 @@ describe("resident dashboard components", () => {
 
     expect(markup).toContain("07:00 - disponivel");
     expect(markup).toContain("07:30 - disponivel");
+  });
+
+  it("renders reservation start options from 08:00", () => {
+    const markup = renderToStaticMarkup(
+      <ReservationForm
+        action={async () => ({})}
+        defaultDate="2026-07-20"
+        defaultStartTime="08:00"
+      />,
+    );
+
+    expect(markup).not.toContain('<option value="07:00">07:00</option>');
+    expect(markup).not.toContain('<option value="07:30">07:30</option>');
+    expect(markup).toContain('<option value="08:00" selected="">08:00</option>');
   });
 
   it("renders busy reservation slots with apartment number", () => {
@@ -54,10 +69,10 @@ describe("resident dashboard components", () => {
       <ReservationDayOverview
         date="2026-07-19"
         slots={[
-          { time: "07:00", status: "free" },
-          { time: "07:30", status: "free" },
+          { time: "08:00", status: "free" },
+          { time: "08:30", status: "free" },
           {
-            time: "08:00",
+            time: "09:00",
             status: "busy",
             apartmentNumber: 1,
             reservationId: "reservation-1",
@@ -65,15 +80,15 @@ describe("resident dashboard components", () => {
           },
         ]}
         freeWindows={[
-          { startTime: "07:00", endTime: "08:00", durationMinutes: 60 },
+          { startTime: "08:00", endTime: "09:00", durationMinutes: 60 },
         ]}
       />,
     );
 
     expect(markup).toContain("Visao rapida");
-    expect(markup).toContain("07:00-08:00");
+    expect(markup).toContain("08:00-09:00");
     expect(markup).toContain("1h livre");
-    expect(markup).toContain("href=\"/reservations?date=2026-07-19&amp;start=07%3A00\"");
+    expect(markup).toContain("href=\"/reservations?date=2026-07-19&amp;start=08%3A00\"");
     expect(markup).toContain("Apt 1");
   });
 

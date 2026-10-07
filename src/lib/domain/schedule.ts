@@ -27,7 +27,7 @@ export type FreeWindow = {
   durationMinutes: number;
 };
 
-const FIRST_SLOT_MINUTES = 7 * 60;
+const FIRST_SLOT_MINUTES = 8 * 60;
 const LAST_SLOT_START_MINUTES = 22 * 60 + 30;
 const SLOT_MINUTES = 30;
 

@@ -2,20 +2,20 @@ import { describe, expect, it } from "vitest";
 import { assertReservableWindow, ceilToThirtyMinuteBlocks, minutesBetween } from "../../src/lib/domain/time";
 
 describe("time domain", () => {
-  it("allows reservations between 07:00 and 23:00", () => {
-    expect(() => assertReservableWindow("2026-07-20T07:00:00-03:00", "2026-07-20T09:00:00-03:00")).not.toThrow();
+  it("allows reservations between 08:00 and 23:00", () => {
+    expect(() => assertReservableWindow("2026-07-20T08:00:00-03:00", "2026-07-20T10:00:00-03:00")).not.toThrow();
   });
 
   it("reports an end-time error for 23:30 in the reservation civil time", () => {
     expect(() => assertReservableWindow("2026-07-20T22:30:00-03:00", "2026-07-20T23:30:00-03:00")).toThrow("Reservas devem terminar ate 23:00");
   });
 
-  it("rejects 06:30 in the reservation civil time", () => {
-    expect(() => assertReservableWindow("2026-07-20T06:30:00-03:00", "2026-07-20T07:30:00-03:00")).toThrow("Reservas devem comecar a partir de 07:00");
+  it("rejects 07:30 in the reservation civil time", () => {
+    expect(() => assertReservableWindow("2026-07-20T07:30:00-03:00", "2026-07-20T08:30:00-03:00")).toThrow("Reservas devem comecar a partir de 08:00");
   });
 
-  it("allows the 07:00 start boundary", () => {
-    expect(() => assertReservableWindow("2026-07-20T07:00:00-03:00", "2026-07-20T08:00:00-03:00")).not.toThrow();
+  it("allows the 08:00 start boundary", () => {
+    expect(() => assertReservableWindow("2026-07-20T08:00:00-03:00", "2026-07-20T09:00:00-03:00")).not.toThrow();
   });
 
   it("allows the 23:00 end boundary", () => {

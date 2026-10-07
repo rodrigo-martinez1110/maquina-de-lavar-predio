@@ -163,6 +163,7 @@ describe("reservation actions", () => {
 
     expect(sql).toContain("insert into weekly_balances");
     expect(sql).toContain("on conflict (apartment_id, week_start) do nothing");
-    expect(sql).toContain("360 + greatest(0, v_apartment.resident_count - 1) * 30");
+    expect(sql).toContain("900 + greatest(0, v_apartment.resident_count - 1) * 30");
+    expect(sql).toContain("time '08:00'");
   });
 });

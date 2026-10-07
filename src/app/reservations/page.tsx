@@ -53,7 +53,7 @@ export default async function ReservationsPage({ searchParams }: ReservationsPag
             <p className="text-sm font-medium text-slate-500">Apartamento {session.apartmentNumber}</p>
             <h1 className="mt-1 text-2xl font-semibold">Agenda</h1>
             <p className="mt-2 text-sm text-slate-600">
-              Horarios entre 07:00 e 23:00, em blocos de 30 minutos.
+              Horarios entre 08:00 e 23:00, em blocos de 30 minutos.
             </p>
           </div>
           <form className="flex gap-2" action="/reservations">

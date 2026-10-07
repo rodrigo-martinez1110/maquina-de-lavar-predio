@@ -5,8 +5,8 @@ describe("schedule domain", () => {
   it("builds every reservable 30 minute slot in the day", () => {
     const slots = buildDaySlots({ date: "2026-07-19", reservations: [] });
 
-    expect(slots).toHaveLength(32);
-    expect(slots[0]).toMatchObject({ time: "07:00", status: "free" });
+    expect(slots).toHaveLength(30);
+    expect(slots[0]).toMatchObject({ time: "08:00", status: "free" });
     expect(slots.at(-1)).toMatchObject({ time: "22:30", status: "free" });
   });
 
@@ -57,7 +57,8 @@ describe("schedule domain", () => {
       ],
     });
 
-    expect(slots.find((slot) => slot.time === "07:00")).toMatchObject({
+    expect(slots.find((slot) => slot.time === "07:00")).toBeUndefined();
+    expect(slots.find((slot) => slot.time === "08:00")).toMatchObject({
       status: "busy",
       apartmentNumber: 2,
       reservationId: "reservation-1",
@@ -87,7 +88,7 @@ describe("schedule domain", () => {
     });
 
     expect(buildFreeWindows(slots)).toEqual([
-      { startTime: "07:00", endTime: "10:00", durationMinutes: 180 },
+      { startTime: "08:00", endTime: "10:00", durationMinutes: 120 },
       { startTime: "11:00", endTime: "23:00", durationMinutes: 720 },
     ]);
   });

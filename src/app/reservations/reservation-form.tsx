@@ -95,8 +95,6 @@ export function ReservationForm(props: {
 }
 
 const timeOptions = [
-  "07:00",
-  "07:30",
   "08:00",
   "08:30",
   "09:00",

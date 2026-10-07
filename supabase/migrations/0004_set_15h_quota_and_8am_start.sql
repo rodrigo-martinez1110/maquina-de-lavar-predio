@@ -162,3 +162,10 @@ grant execute on function create_reservation_with_balance(
   timestamptz,
   jsonb
 ) to service_role;
+
+update weekly_balances wb
+set quota_minutes = 900 + greatest(0, a.resident_count - 1) * 30,
+    updated_at = now()
+from apartments a
+where a.id = wb.apartment_id
+  and wb.week_start >= date_trunc('week', now() at time zone 'America/Sao_Paulo')::date;
