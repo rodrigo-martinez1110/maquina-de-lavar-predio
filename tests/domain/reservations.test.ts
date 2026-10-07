@@ -13,6 +13,7 @@ describe("reservation domain", () => {
         startIso: "2026-07-20T10:00:00-03:00",
         endIso: "2026-07-20T10:15:00-03:00",
         availableMinutes: 120,
+        existingDailyReservedMinutes: 0,
       }),
     ).toThrow("Reserva minima de 30 minutos");
   });
@@ -23,6 +24,7 @@ describe("reservation domain", () => {
         startIso: "2026-07-20T10:00:00-03:00",
         endIso: "2026-07-20T14:30:00-03:00",
         availableMinutes: 300,
+        existingDailyReservedMinutes: 0,
       }),
     ).toThrow("Reserva maxima de 4 horas");
   });
@@ -33,6 +35,7 @@ describe("reservation domain", () => {
         startIso: "2026-07-20T10:00:00-03:00",
         endIso: "2026-07-20T10:45:00-03:00",
         availableMinutes: 120,
+        existingDailyReservedMinutes: 0,
       }),
     ).toThrow("Reservas devem usar blocos de 30 minutos");
   });
@@ -43,8 +46,31 @@ describe("reservation domain", () => {
         startIso: "2026-07-20T10:00:00-03:00",
         endIso: "2026-07-20T12:00:00-03:00",
         availableMinutes: 60,
+        existingDailyReservedMinutes: 0,
       }),
     ).toThrow("Saldo insuficiente");
+  });
+
+  it("allows reservations that reach exactly 7h in the same day", () => {
+    expect(() =>
+      assertReservationAllowed({
+        startIso: "2026-07-20T15:00:00-03:00",
+        endIso: "2026-07-20T17:00:00-03:00",
+        availableMinutes: 300,
+        existingDailyReservedMinutes: 300,
+      }),
+    ).not.toThrow();
+  });
+
+  it("blocks reservations above 7h in the same day", () => {
+    expect(() =>
+      assertReservationAllowed({
+        startIso: "2026-07-20T15:00:00-03:00",
+        endIso: "2026-07-20T17:00:00-03:00",
+        availableMinutes: 300,
+        existingDailyReservedMinutes: 360,
+      }),
+    ).toThrow("Limite diario de 7h atingido");
   });
 
   it("detects overlapping reservations", () => {

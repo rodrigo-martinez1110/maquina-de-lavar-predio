@@ -7,7 +7,10 @@ export type ReservationWindow = {
 
 export type ReservationAllowedInput = ReservationWindow & {
   availableMinutes: number;
+  existingDailyReservedMinutes: number;
 };
+
+const DAILY_RESERVATION_LIMIT_MINUTES = 7 * 60;
 
 export function assertReservationAllowed(input: ReservationAllowedInput): void {
   assertReservableWindow(input.startIso, input.endIso);
@@ -16,6 +19,9 @@ export function assertReservationAllowed(input: ReservationAllowedInput): void {
   if (duration > 240) throw new Error("Reserva maxima de 4 horas");
   if (duration % 30 !== 0) throw new Error("Reservas devem usar blocos de 30 minutos");
   if (duration > input.availableMinutes) throw new Error("Saldo insuficiente");
+  if (input.existingDailyReservedMinutes + duration > DAILY_RESERVATION_LIMIT_MINUTES) {
+    throw new Error("Limite diario de 7h atingido");
+  }
 }
 
 export function overlapsReservation(left: ReservationWindow, right: ReservationWindow): boolean {

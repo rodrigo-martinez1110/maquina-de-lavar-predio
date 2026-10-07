@@ -46,6 +46,7 @@ describe("reservation actions", () => {
       startIso: "2026-07-20T10:00:00-03:00",
       endIso: "2026-07-20T12:00:00-03:00",
       availableMinutes: 180,
+      existingDailyReservedMinutes: 240,
       findConflicts: async () => [],
       insertReservation: async () => ({ id: "res-1" }),
       audit: async () => undefined,
@@ -62,11 +63,28 @@ describe("reservation actions", () => {
         startIso: "2026-07-20T10:00:00-03:00",
         endIso: "2026-07-20T11:00:00-03:00",
         availableMinutes: 120,
+        existingDailyReservedMinutes: 0,
         findConflicts: async () => [{ id: "res-2" }],
         insertReservation: async () => ({ id: "res-1" }),
         audit: async () => undefined,
       }),
     ).rejects.toThrow("Horario indisponivel");
+  });
+
+  it("blocks reservations that exceed 7h reserved in the same day", async () => {
+    await expect(
+      createReservationUseCase({
+        apartmentId: "apt-1",
+        kind: "wash_dry",
+        startIso: "2026-07-20T15:00:00-03:00",
+        endIso: "2026-07-20T17:00:00-03:00",
+        availableMinutes: 300,
+        existingDailyReservedMinutes: 360,
+        findConflicts: async () => [],
+        insertReservation: async () => ({ id: "res-1" }),
+        audit: async () => undefined,
+      }),
+    ).rejects.toThrow("Limite diario de 7h atingido");
   });
 
   it("rejects invalid kind before repository calls", async () => {
@@ -174,5 +192,15 @@ describe("reservation actions", () => {
     expect(sql).toContain("quota_minutes = 900");
     expect(sql).toContain("week_start >= date_trunc('week'");
     expect(sql).toContain("manual_adjustment_minutes");
+  });
+
+  it("defines SQL migration that limits each apartment to 7h per day", () => {
+    const sql = readFileSync("supabase/migrations/0005_limit_daily_reservation_usage.sql", "utf8");
+
+    expect(sql).toContain("v_daily_reserved_minutes");
+    expect(sql).toContain("420");
+    expect(sql).toContain("Limite diario de 7h atingido");
+    expect(sql).toContain("r.apartment_id = p_apartment_id");
+    expect(sql).toContain("r.status in ('reserved', 'in_use', 'late')");
   });
 });

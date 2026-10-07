@@ -58,6 +58,7 @@ export async function createReservationUseCase(input: {
   startIso: string;
   endIso: string;
   availableMinutes: number;
+  existingDailyReservedMinutes: number;
   findConflicts: (window: ReservationWindow) => Promise<Array<{ id: string }>>;
   insertReservation: (row: {
     apartmentId: string;
@@ -195,6 +196,9 @@ export function mapReservationDatabaseError(error: unknown): Error | null {
 
   if (maybePostgresError.code === "23P01" || text.includes("reservations_active_no_overlap")) {
     return new Error("Horario indisponivel");
+  }
+  if (text.includes("Limite diario de 7h atingido")) {
+    return new Error("Limite diario de 7h atingido");
   }
 
   return null;
