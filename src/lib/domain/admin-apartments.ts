@@ -35,3 +35,22 @@ export function validatePinResetInput(input: {
 
   return { apartmentId, pin };
 }
+
+export function validateWeeklyBalanceAdjustmentInput(input: {
+  apartmentId: FormDataEntryValue | null;
+  minutes: FormDataEntryValue | null;
+  reason: FormDataEntryValue | null;
+}) {
+  const apartmentId = String(input.apartmentId ?? "").trim();
+  const minutes = Number(input.minutes);
+  const reason = String(input.reason ?? "").trim();
+
+  if (!apartmentId) throw new Error("Apartamento invalido");
+  if (!Number.isInteger(minutes) || minutes === 0 || Math.abs(minutes) > 480 || minutes % 30 !== 0) {
+    throw new Error("Ajuste de saldo invalido");
+  }
+  if (!reason) throw new Error("Motivo obrigatorio");
+  if (reason.length > 200) throw new Error("Motivo muito longo");
+
+  return { apartmentId, minutes, reason };
+}

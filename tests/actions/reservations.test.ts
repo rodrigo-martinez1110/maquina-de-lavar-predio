@@ -163,7 +163,16 @@ describe("reservation actions", () => {
 
     expect(sql).toContain("insert into weekly_balances");
     expect(sql).toContain("on conflict (apartment_id, week_start) do nothing");
-    expect(sql).toContain("900 + greatest(0, v_apartment.resident_count - 1) * 30");
+    expect(sql).toContain("900");
     expect(sql).toContain("time '08:00'");
+  });
+
+  it("defines SQL migration that upgrades current and future balances to 15h", () => {
+    const sql = readFileSync("supabase/migrations/0004_set_15h_quota_and_8am_start.sql", "utf8");
+
+    expect(sql).toContain("update weekly_balances");
+    expect(sql).toContain("quota_minutes = 900");
+    expect(sql).toContain("week_start >= date_trunc('week'");
+    expect(sql).toContain("manual_adjustment_minutes");
   });
 });

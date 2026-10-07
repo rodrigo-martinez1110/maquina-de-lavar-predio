@@ -68,7 +68,7 @@ begin
   values (
     p_apartment_id,
     v_week_start,
-    900 + greatest(0, v_apartment.resident_count - 1) * 30,
+    900,
     v_apartment.manual_adjustment_minutes
   )
   on conflict (apartment_id, week_start) do nothing;
@@ -164,7 +164,7 @@ grant execute on function create_reservation_with_balance(
 ) to service_role;
 
 update weekly_balances wb
-set quota_minutes = 900 + greatest(0, a.resident_count - 1) * 30,
+set quota_minutes = 900,
     updated_at = now()
 from apartments a
 where a.id = wb.apartment_id

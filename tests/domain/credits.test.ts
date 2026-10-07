@@ -6,12 +6,12 @@ describe("credit domain", () => {
     expect(calculateWeeklyQuotaMinutes({ residentCount: 1, manualAdjustmentMinutes: 0 })).toBe(900);
   });
 
-  it("adds 30min for each resident above one", () => {
-    expect(calculateWeeklyQuotaMinutes({ residentCount: 2, manualAdjustmentMinutes: 0 })).toBe(930);
+  it("gives 15h to two residents", () => {
+    expect(calculateWeeklyQuotaMinutes({ residentCount: 2, manualAdjustmentMinutes: 0 })).toBe(900);
   });
 
   it("applies manual admin adjustment", () => {
-    expect(calculateWeeklyQuotaMinutes({ residentCount: 2, manualAdjustmentMinutes: 30 })).toBe(960);
+    expect(calculateWeeklyQuotaMinutes({ residentCount: 2, manualAdjustmentMinutes: 30 })).toBe(930);
   });
 
   it("calculates weekly available balance", () => {
