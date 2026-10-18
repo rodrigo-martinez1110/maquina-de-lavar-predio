@@ -6,6 +6,7 @@ import {
   type ReservationCancellationState,
 } from "../../lib/actions/reservation-cancellation";
 import type { ScheduleReservation } from "../../lib/domain/schedule";
+import { finishReservationAction, startReservationAction } from "../../lib/actions/reservation-usage";
 
 const initialState: ReservationCancellationState = {};
 
@@ -60,6 +61,16 @@ function MyReservationCard({ reservation }: { reservation: ScheduleReservation }
         </button>
       </div>
       <StateMessage state={state} />
+      {reservation.status === "reserved" ? (
+        <button formAction={startReservationAction} className="mt-3 min-h-10 w-full rounded-md bg-emerald-600 px-3 text-sm font-semibold text-white" type="submit">
+          Comecei a usar
+        </button>
+      ) : null}
+      {reservation.status === "in_use" || reservation.status === "late" ? (
+        <button formAction={finishReservationAction} className="mt-3 min-h-10 w-full rounded-md bg-slate-800 px-3 text-sm font-semibold text-white" type="submit">
+          Terminei de usar
+        </button>
+      ) : null}
     </form>
   );
 }
