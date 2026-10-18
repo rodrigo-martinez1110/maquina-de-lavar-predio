@@ -51,18 +51,7 @@ describe("reservation domain", () => {
     ).toThrow("Saldo insuficiente");
   });
 
-  it("allows reservations that reach exactly 7h in the same day", () => {
-    expect(() =>
-      assertReservationAllowed({
-        startIso: "2026-07-20T15:00:00-03:00",
-        endIso: "2026-07-20T17:00:00-03:00",
-        availableMinutes: 300,
-        existingDailyReservedMinutes: 300,
-      }),
-    ).not.toThrow();
-  });
-
-  it("blocks reservations above 7h in the same day", () => {
+  it("allows reservations that reach exactly 8h in the same day", () => {
     expect(() =>
       assertReservationAllowed({
         startIso: "2026-07-20T15:00:00-03:00",
@@ -70,7 +59,18 @@ describe("reservation domain", () => {
         availableMinutes: 300,
         existingDailyReservedMinutes: 360,
       }),
-    ).toThrow("Limite diario de 7h atingido");
+    ).not.toThrow();
+  });
+
+  it("blocks reservations above 8h in the same day", () => {
+    expect(() =>
+      assertReservationAllowed({
+        startIso: "2026-07-20T15:00:00-03:00",
+        endIso: "2026-07-20T17:00:00-03:00",
+        availableMinutes: 300,
+        existingDailyReservedMinutes: 420,
+      }),
+    ).toThrow("Limite diario de 8h atingido");
   });
 
   it("detects overlapping reservations", () => {

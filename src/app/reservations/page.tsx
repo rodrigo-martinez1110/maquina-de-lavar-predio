@@ -4,7 +4,7 @@ import { ReservationDayOverview } from "../../components/ReservationDayOverview"
 import { createReservationFromForm } from "../../lib/actions/reservation-form";
 import { getApartmentSession } from "../../lib/auth/apartment-session";
 import { buildDaySlots, buildFreeWindows } from "../../lib/domain/schedule";
-import { listReservationsForDay } from "../../lib/repositories/reservations";
+import { getMachineStatus, listReservationsForDay, reconcileReservationStatuses } from "../../lib/repositories/reservations";
 import { MyReservations } from "./my-reservations";
 import { ReservationForm } from "./reservation-form";
 
@@ -36,7 +36,9 @@ export default async function ReservationsPage({ searchParams }: ReservationsPag
   const params = searchParams ? await searchParams : {};
   const selectedDate = dateFromSearchParam(params.date);
   const selectedStart = startFromSearchParam(params.start);
+  await reconcileReservationStatuses();
   const reservations = await listReservationsForDay(selectedDate);
+  const machineStatus = await getMachineStatus();
   const slots = buildDaySlots({ date: selectedDate, reservations });
   const freeWindows = buildFreeWindows(slots);
   const myReservations = reservations.filter(
@@ -83,6 +85,12 @@ export default async function ReservationsPage({ searchParams }: ReservationsPag
         </div>
       </header>
       <ReservationDayOverview date={selectedDate} freeWindows={freeWindows} slots={slots} />
+      <section className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+        <p className="text-sm font-medium text-slate-500">Status da máquina</p>
+        <h2 className="mt-1 text-xl font-semibold">{machineStatus.label}</h2>
+        <p className="mt-1 text-sm text-slate-600">{machineStatus.detail}</p>
+        <p className="mt-3 text-xs text-slate-500">Para avisar sobre ocupação, término ou manutenção, acesse Regras.</p>
+      </section>
       <MyReservations reservations={myReservations} />
       <ReservationForm
         action={createReservationFromForm}

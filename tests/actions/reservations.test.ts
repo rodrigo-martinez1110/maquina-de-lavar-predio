@@ -71,7 +71,7 @@ describe("reservation actions", () => {
     ).rejects.toThrow("Horario indisponivel");
   });
 
-  it("blocks reservations that exceed 7h reserved in the same day", async () => {
+  it("blocks reservations that exceed 8h reserved in the same day", async () => {
     await expect(
       createReservationUseCase({
         apartmentId: "apt-1",
@@ -79,12 +79,12 @@ describe("reservation actions", () => {
         startIso: "2026-07-20T15:00:00-03:00",
         endIso: "2026-07-20T17:00:00-03:00",
         availableMinutes: 300,
-        existingDailyReservedMinutes: 360,
+        existingDailyReservedMinutes: 420,
         findConflicts: async () => [],
         insertReservation: async () => ({ id: "res-1" }),
         audit: async () => undefined,
       }),
-    ).rejects.toThrow("Limite diario de 7h atingido");
+    ).rejects.toThrow("Limite diario de 8h atingido");
   });
 
   it("rejects invalid kind before repository calls", async () => {
@@ -185,21 +185,21 @@ describe("reservation actions", () => {
     expect(sql).toContain("time '08:00'");
   });
 
-  it("defines SQL migration that upgrades current and future balances to 15h", () => {
-    const sql = readFileSync("supabase/migrations/0004_set_15h_quota_and_8am_start.sql", "utf8");
+  it("defines SQL migration that upgrades current and future balances to 10h", () => {
+    const sql = readFileSync("supabase/migrations/0006_set_10h_quota.sql", "utf8");
 
     expect(sql).toContain("update weekly_balances");
-    expect(sql).toContain("quota_minutes = 900");
+    expect(sql).toContain("quota_minutes = 600");
     expect(sql).toContain("week_start >= date_trunc('week'");
     expect(sql).toContain("manual_adjustment_minutes");
   });
 
-  it("defines SQL migration that limits each apartment to 7h per day", () => {
-    const sql = readFileSync("supabase/migrations/0005_limit_daily_reservation_usage.sql", "utf8");
+  it("defines SQL migration that limits each apartment to 8h per day", () => {
+    const sql = readFileSync("supabase/migrations/0006_set_10h_quota.sql", "utf8");
 
     expect(sql).toContain("v_daily_reserved_minutes");
-    expect(sql).toContain("420");
-    expect(sql).toContain("Limite diario de 7h atingido");
+    expect(sql).toContain("480");
+    expect(sql).toContain("Limite diario de 8h atingido");
     expect(sql).toContain("r.apartment_id = p_apartment_id");
     expect(sql).toContain("r.status in ('reserved', 'in_use', 'late')");
   });

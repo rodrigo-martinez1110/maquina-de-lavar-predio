@@ -10,10 +10,10 @@ import { ReservationTimeline } from "../../src/components/ReservationTimeline";
 
 describe("resident dashboard components", () => {
   it("formats whole-hour weekly balance without minutes", () => {
-    const markup = renderToStaticMarkup(<BalanceCard availableMinutes={900} />);
+    const markup = renderToStaticMarkup(<BalanceCard availableMinutes={600} />);
 
     expect(markup).toContain("Saldo da semana");
-    expect(markup).toContain("15h");
+    expect(markup).toContain("10h");
     expect(markup).not.toContain("0min");
   });
 
