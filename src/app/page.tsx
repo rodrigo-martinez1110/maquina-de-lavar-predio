@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { AppNav } from "../components/AppNav";
 import { BalanceCard } from "../components/BalanceCard";
+import { RulesHighlight } from "../components/RulesHighlight";
 import { getApartmentSession } from "../lib/auth/apartment-session";
 import { getApartmentWeeklyAvailableMinutes } from "../lib/repositories/weekly-balances";
 
@@ -30,6 +31,7 @@ export default async function HomePage() {
         </p>
       </header>
       <BalanceCard availableMinutes={availableMinutes} />
+      <RulesHighlight />
       <section className="grid grid-cols-2 gap-3">
         <a
           className="rounded-xl bg-slate-950 p-4 text-center font-medium text-white shadow-sm"
