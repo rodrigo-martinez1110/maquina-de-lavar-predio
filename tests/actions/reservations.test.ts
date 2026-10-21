@@ -203,4 +203,12 @@ describe("reservation actions", () => {
     expect(sql).toContain("r.apartment_id = p_apartment_id");
     expect(sql).toContain("r.status in ('reserved', 'in_use', 'late')");
   });
+
+  it("defines a database guard that prevents active reservations above 8h per day", () => {
+    const sql = readFileSync("supabase/migrations/0008_enforce_quota_limits.sql", "utf8");
+
+    expect(sql).toContain("enforce_daily_reservation_limit");
+    expect(sql).toContain("480");
+    expect(sql).toContain("create trigger");
+  });
 });

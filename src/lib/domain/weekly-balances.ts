@@ -8,10 +8,12 @@ type WeeklyBalanceForAvailability = {
   penalty_minutes: number;
 };
 
+const WEEKLY_QUOTA_CAP_MINUTES = 10 * 60;
+
 export function availableMinutesFromWeeklyBalance(balance: WeeklyBalanceForAvailability | null): number {
   if (!balance) return 0;
 
-  return (
+  const availableMinutes = (
     balance.quota_minutes +
     balance.manual_adjustment_minutes +
     balance.received_minutes -
@@ -20,13 +22,17 @@ export function availableMinutesFromWeeklyBalance(balance: WeeklyBalanceForAvail
     balance.refunded_minutes -
     balance.penalty_minutes
   );
+
+  return Math.min(WEEKLY_QUOTA_CAP_MINUTES, availableMinutes);
 }
 
 export function availableMinutesFromWeeklyBalanceOrQuota(input: {
   balance: WeeklyBalanceForAvailability | null;
   defaultQuotaMinutes: number;
 }): number {
-  return input.balance ? availableMinutesFromWeeklyBalance(input.balance) : input.defaultQuotaMinutes;
+  return input.balance
+    ? availableMinutesFromWeeklyBalance(input.balance)
+    : Math.min(WEEKLY_QUOTA_CAP_MINUTES, input.defaultQuotaMinutes);
 }
 
 export function weekStartForReservation(startIso: string): string {
