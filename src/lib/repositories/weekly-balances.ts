@@ -90,7 +90,7 @@ export async function getApartmentWeeklyAvailableMinutes(input: {
 
   const defaultQuotaMinutes = calculateWeeklyQuotaMinutes({
     residentCount: apartment.resident_count,
-    manualAdjustmentMinutes: apartment.manual_adjustment_minutes,
+    manualAdjustmentMinutes: 0,
   });
 
   const { data: balance, error: balanceError } = await supabase

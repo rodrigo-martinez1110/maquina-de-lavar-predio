@@ -47,7 +47,7 @@ begin
   if v_daily_reserved_minutes + v_estimated_minutes > 480 then
     raise exception 'Limite diario de 8h atingido' using errcode = 'P0001';
   end if;
-  v_available_minutes := v_balance.quota_minutes + v_balance.manual_adjustment_minutes + v_balance.received_minutes - v_balance.sent_minutes - v_balance.reserved_minutes + v_balance.refunded_minutes - v_balance.penalty_minutes;
+  v_available_minutes := least(600, v_balance.quota_minutes + v_balance.manual_adjustment_minutes + v_balance.received_minutes - v_balance.sent_minutes - v_balance.reserved_minutes + v_balance.refunded_minutes - v_balance.penalty_minutes);
   if v_available_minutes < v_estimated_minutes then raise exception 'Saldo insuficiente' using errcode = 'P0001'; end if;
   insert into reservations (apartment_id, kind, starts_at, ends_at, estimated_minutes)
   values (p_apartment_id, p_kind, p_starts_at, p_ends_at, v_estimated_minutes) returning id into v_reservation_id;
