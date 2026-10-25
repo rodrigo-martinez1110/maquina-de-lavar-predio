@@ -1,8 +1,13 @@
+import type { Database } from "../database.types";
+
+export type ReservationStatus = Database["public"]["Enums"]["reservation_status"];
+
 export type ScheduleReservation = {
   id: string;
   apartmentId: string;
   apartmentNumber: number;
   kind: "wash" | "dry" | "wash_dry" | "custom";
+  status: ReservationStatus;
   startsAtIso: string;
   endsAtIso: string;
   estimatedMinutes: number;
@@ -19,6 +24,23 @@ export type DaySlot =
       apartmentNumber: number;
       reservationId: string;
       kind: ScheduleReservation["kind"];
+      reservationStatus: ReservationStatus;
+      additionalReservations?: Array<{
+        apartmentNumber: number;
+        reservationStatus: ReservationStatus;
+      }>;
+    }
+  | {
+      time: string;
+      status: "history";
+      apartmentNumber: number;
+      reservationId: string;
+      kind: ScheduleReservation["kind"];
+      reservationStatus: ReservationStatus;
+      additionalReservations?: Array<{
+        apartmentNumber: number;
+        reservationStatus: ReservationStatus;
+      }>;
     };
 
 export type FreeWindow = {
@@ -71,19 +93,30 @@ export function buildDaySlots(input: {
     slotMinutes <= LAST_SLOT_START_MINUTES;
     slotMinutes += SLOT_MINUTES
   ) {
-    const reservation = input.reservations.find((candidate) => {
+    const matchingReservations = input.reservations.filter((candidate) => {
       const startsAt = minutesOfDayFromIso(candidate.startsAtIso);
       const endsAt = minutesOfDayFromIso(candidate.endsAtIso);
       return dateInSaoPauloFromIso(candidate.startsAtIso) === input.date && startsAt <= slotMinutes && slotMinutes < endsAt;
     });
 
-    if (reservation) {
+    if (matchingReservations.length > 0) {
+      const reservation = matchingReservations.find((candidate) =>
+        ["reserved", "in_use", "late"].includes(candidate.status),
+      ) ?? matchingReservations[0];
+      const isActive = ["reserved", "in_use", "late"].includes(reservation.status);
       slots.push({
         time: timeFromMinutes(slotMinutes),
-        status: "busy",
+        status: isActive ? "busy" : "history",
         apartmentNumber: reservation.apartmentNumber,
         reservationId: reservation.id,
         kind: reservation.kind,
+        reservationStatus: reservation.status,
+        additionalReservations: matchingReservations
+          .filter((candidate) => candidate.id !== reservation.id)
+          .map((candidate) => ({
+            apartmentNumber: candidate.apartmentNumber,
+            reservationStatus: candidate.status,
+          })),
       });
     } else {
       slots.push({

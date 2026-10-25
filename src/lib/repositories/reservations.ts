@@ -17,7 +17,10 @@ export async function findReservationConflicts(window: ReservationWindow): Promi
   return data ?? [];
 }
 
-export async function listReservationsForDay(date: string): Promise<ScheduleReservation[]> {
+export async function listReservationsForDay(
+  date: string,
+  includeHistory = false,
+): Promise<ScheduleReservation[]> {
   const supabase = createServiceSupabaseClient();
   const dayStartIso = `${date}T00:00:00-03:00`;
   const nextDate = new Date(`${date}T12:00:00-03:00`);
@@ -27,13 +30,15 @@ export async function listReservationsForDay(date: string): Promise<ScheduleRese
   }).format(nextDate);
   const dayEndIso = `${nextDateText}T00:00:00-03:00`;
 
-  const { data: reservations, error } = await supabase
+  const reservationsQuery = supabase
     .from("reservations")
-    .select("id, apartment_id, kind, starts_at, ends_at, estimated_minutes")
+    .select("id, apartment_id, kind, status, starts_at, ends_at, estimated_minutes")
     .lt("starts_at", dayEndIso)
-    .gt("ends_at", dayStartIso)
-    .in("status", ["reserved", "in_use", "late"])
-    .order("starts_at", { ascending: true });
+    .gt("ends_at", dayStartIso);
+  const filteredQuery = includeHistory
+    ? reservationsQuery
+    : reservationsQuery.in("status", ["reserved", "in_use", "late"]);
+  const { data: reservations, error } = await filteredQuery.order("starts_at", { ascending: true });
 
   if (error) throw error;
   const reservationRows = reservations ?? [];
@@ -56,6 +61,7 @@ export async function listReservationsForDay(date: string): Promise<ScheduleRese
     apartmentId: reservation.apartment_id,
     apartmentNumber: apartmentNumberById.get(reservation.apartment_id) ?? 0,
     kind: reservation.kind,
+    status: reservation.status,
     startsAtIso: reservation.starts_at,
     endsAtIso: reservation.ends_at,
     estimatedMinutes: reservation.estimated_minutes,

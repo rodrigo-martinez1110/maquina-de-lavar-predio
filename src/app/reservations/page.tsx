@@ -36,14 +36,18 @@ export default async function ReservationsPage({ searchParams }: ReservationsPag
   const params = searchParams ? await searchParams : {};
   const selectedDate = dateFromSearchParam(params.date);
   const selectedStart = startFromSearchParam(params.start);
-  const reservations = await listReservationsForDay(selectedDate);
+  const isHistoricalDate = selectedDate < todayInSaoPaulo();
+  const reservations = await listReservationsForDay(selectedDate, isHistoricalDate);
   const slots = buildDaySlots({ date: selectedDate, reservations });
   const freeWindows = buildFreeWindows(slots);
   const myReservations = reservations.filter(
-    (reservation) => reservation.apartmentId === session.apartmentId,
+    (reservation) =>
+      !isHistoricalDate &&
+      reservation.apartmentId === session.apartmentId &&
+      ["reserved", "in_use", "late"].includes(reservation.status),
   );
   const busySlotsCount = slots.filter((slot) => slot.status === "busy").length;
-  const freeSlotsCount = slots.length - busySlotsCount;
+  const freeSlotsCount = slots.filter((slot) => slot.status === "free").length;
 
   return (
     <main className="mx-auto flex min-h-screen max-w-5xl flex-col gap-6 p-4 pb-24">
@@ -71,18 +75,30 @@ export default async function ReservationsPage({ searchParams }: ReservationsPag
             </button>
           </form>
         </div>
-        <div className="mt-4 grid grid-cols-2 gap-3 text-sm sm:max-w-md">
-          <div className="rounded-xl bg-emerald-50 p-3 text-emerald-800">
-            <p className="font-semibold">{freeSlotsCount} livres</p>
-            <p className="text-xs text-emerald-700">blocos de 30 min</p>
+        {isHistoricalDate ? (
+          <div className="mt-4 rounded-xl bg-slate-100 p-3 text-sm text-slate-700 sm:max-w-md">
+            <p className="font-semibold">{reservations.length} registros no histórico</p>
+            <p className="text-xs text-slate-600">Consulte o status de cada marcação na grade.</p>
           </div>
-          <div className="rounded-xl bg-rose-50 p-3 text-rose-800">
-            <p className="font-semibold">{busySlotsCount} ocupados</p>
-            <p className="text-xs text-rose-700">ja reservados</p>
+        ) : (
+          <div className="mt-4 grid grid-cols-2 gap-3 text-sm sm:max-w-md">
+            <div className="rounded-xl bg-emerald-50 p-3 text-emerald-800">
+              <p className="font-semibold">{freeSlotsCount} livres</p>
+              <p className="text-xs text-emerald-700">blocos de 30 min</p>
+            </div>
+            <div className="rounded-xl bg-rose-50 p-3 text-rose-800">
+              <p className="font-semibold">{busySlotsCount} ocupados</p>
+              <p className="text-xs text-rose-700">ja reservados</p>
+            </div>
           </div>
-        </div>
+        )}
       </header>
-      <ReservationDayOverview date={selectedDate} freeWindows={freeWindows} slots={slots} />
+      <ReservationDayOverview
+        date={selectedDate}
+        isHistorical={isHistoricalDate}
+        freeWindows={freeWindows}
+        slots={slots}
+      />
       <MyReservations reservations={myReservations} />
       <ReservationForm
         action={createReservationFromForm}

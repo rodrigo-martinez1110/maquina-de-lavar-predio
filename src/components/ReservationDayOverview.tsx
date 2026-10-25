@@ -1,5 +1,6 @@
 import clsx from "clsx";
 import type { DaySlot, FreeWindow } from "../lib/domain/schedule";
+import { reservationStatusLabels } from "./reservation-status";
 
 function formatDuration(minutes: number) {
   const hours = Math.floor(minutes / 60);
@@ -10,6 +11,7 @@ function formatDuration(minutes: number) {
 
 export function ReservationDayOverview(props: {
   date: string;
+  isHistorical: boolean;
   slots: DaySlot[];
   freeWindows: FreeWindow[];
 }) {
@@ -23,22 +25,29 @@ export function ReservationDayOverview(props: {
         <div className="flex gap-2 text-xs font-medium">
           <span className="rounded-full bg-emerald-50 px-2 py-1 text-emerald-700">livre</span>
           <span className="rounded-full bg-rose-50 px-2 py-1 text-rose-700">ocupado</span>
+          {props.isHistorical || props.slots.some((slot) => slot.status === "history") ? (
+            <span className="rounded-full bg-slate-100 px-2 py-1 text-slate-700">histórico</span>
+          ) : null}
         </div>
       </div>
 
-      <div className="mt-4 grid grid-cols-8 gap-1" aria-label="Mapa compacto do dia">
+      <div className="mt-4 grid grid-cols-4 gap-1 sm:grid-cols-8" aria-label="Mapa compacto do dia">
         {props.slots.map((slot) => (
           <a
             aria-label={
               slot.status === "free"
                 ? `${slot.time} livre`
-                : `${slot.time} ocupado pelo apartamento ${slot.apartmentNumber}`
+                : props.isHistorical || slot.status === "history"
+                  ? `${slot.time} ${reservationStatusLabels[slot.reservationStatus]} pelo apartamento ${slot.apartmentNumber}`
+                  : `${slot.time} ocupado pelo apartamento ${slot.apartmentNumber}`
             }
             className={clsx(
               "flex min-h-10 flex-col items-center justify-center rounded-md border px-1 text-center text-[11px] font-semibold",
               slot.status === "free"
                 ? "border-emerald-100 bg-emerald-50 text-emerald-800"
-                : "border-rose-100 bg-rose-50 text-rose-800",
+                : slot.status === "busy"
+                  ? "border-rose-100 bg-rose-50 text-rose-800"
+                  : "border-slate-200 bg-slate-100 text-slate-700",
             )}
             href={
               slot.status === "free"
@@ -48,7 +57,19 @@ export function ReservationDayOverview(props: {
             key={slot.time}
           >
             <span>{slot.time}</span>
-            {slot.status === "busy" ? <span>Apt {slot.apartmentNumber}</span> : null}
+            {slot.status !== "free" ? (
+              <>
+                <span>Apt {slot.apartmentNumber}</span>
+                {props.isHistorical || slot.status === "history" ? (
+                  <span>{reservationStatusLabels[slot.reservationStatus]}</span>
+                ) : null}
+                {slot.additionalReservations?.map((reservation, index) => (
+                  <span key={`${reservation.apartmentNumber}-${reservation.reservationStatus}-${index}`}>
+                    Apt {reservation.apartmentNumber} · {reservationStatusLabels[reservation.reservationStatus]}
+                  </span>
+                ))}
+              </>
+            ) : null}
           </a>
         ))}
       </div>

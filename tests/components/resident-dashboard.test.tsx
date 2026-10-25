@@ -55,6 +55,7 @@ describe("resident dashboard components", () => {
             apartmentNumber: 1,
             reservationId: "reservation-1",
             kind: "wash_dry",
+            reservationStatus: "reserved",
           },
         ]}
       />,
@@ -68,6 +69,7 @@ describe("resident dashboard components", () => {
     const markup = renderToStaticMarkup(
       <ReservationDayOverview
         date="2026-07-19"
+        isHistorical={false}
         slots={[
           { time: "08:00", status: "free" },
           { time: "08:30", status: "free" },
@@ -77,6 +79,7 @@ describe("resident dashboard components", () => {
             apartmentNumber: 1,
             reservationId: "reservation-1",
             kind: "wash_dry",
+            reservationStatus: "reserved",
           },
         ]}
         freeWindows={[
@@ -118,6 +121,7 @@ describe("resident dashboard components", () => {
             apartmentId: "apt-1",
             apartmentNumber: 1,
             kind: "wash_dry",
+            status: "reserved",
             startsAtIso: "2026-07-20T10:00:00-03:00",
             endsAtIso: "2026-07-20T12:00:00-03:00",
             estimatedMinutes: 120,

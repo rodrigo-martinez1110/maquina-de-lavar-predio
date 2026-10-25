@@ -1,5 +1,6 @@
 import clsx from "clsx";
 import type { DaySlot } from "../lib/domain/schedule";
+import { reservationStatusLabels } from "./reservation-status";
 
 export function ReservationTimeline({ slots }: { slots: DaySlot[] }) {
   return (
@@ -11,23 +12,36 @@ export function ReservationTimeline({ slots }: { slots: DaySlot[] }) {
             "flex min-h-14 items-center justify-between gap-3 rounded-xl border px-4 text-left text-sm font-medium shadow-sm transition",
             slot.status === "free"
               ? "border-slate-200 bg-white text-slate-700 hover:border-emerald-300 hover:bg-emerald-50"
-              : "border-rose-100 bg-rose-50 text-rose-950",
+              : slot.status === "busy"
+                ? "border-rose-100 bg-rose-50 text-rose-950"
+                : "border-slate-200 bg-slate-100 text-slate-700",
           )}
           type="button"
         >
           <span>
-            {slot.time} - {slot.status === "free" ? "disponivel" : "ocupado"}
+            {slot.time} - {slot.status === "free"
+              ? "disponivel"
+              : slot.status === "history"
+                ? reservationStatusLabels[slot.reservationStatus]
+                : "ocupado"}
           </span>
           <span
             className={clsx(
               "shrink-0 rounded-full px-2 py-1 text-xs font-semibold",
               slot.status === "free"
                 ? "bg-slate-100 text-slate-500"
-                : "bg-white text-rose-700 ring-1 ring-rose-100",
+                : slot.status === "busy"
+                  ? "bg-white text-rose-700 ring-1 ring-rose-100"
+                  : "bg-white text-slate-700 ring-1 ring-slate-200",
             )}
           >
             {slot.status === "free" ? "30 min" : `Apt ${slot.apartmentNumber}`}
           </span>
+          {slot.status !== "free" && slot.additionalReservations?.length ? (
+            <span className="shrink-0 text-xs">
+              +{slot.additionalReservations.length} histórico(s)
+            </span>
+          ) : null}
         </button>
       ))}
     </section>
