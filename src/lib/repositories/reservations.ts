@@ -126,9 +126,7 @@ export async function listReservationsForDay(
     startsAtIso: reservation.starts_at,
     endsAtIso: reservation.ends_at,
     estimatedMinutes: reservation.estimated_minutes,
-    status: ["reserved", "in_use", "late"].includes(reservation.status)
-      ? (reservation.status as "reserved" | "in_use" | "late")
-      : undefined,
+    status: reservation.status,
     startedAtIso: reservation.started_at,
   }));
 }

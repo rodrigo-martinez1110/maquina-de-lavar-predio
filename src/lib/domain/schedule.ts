@@ -11,7 +11,6 @@ export type ScheduleReservation = {
   startsAtIso: string;
   endsAtIso: string;
   estimatedMinutes: number;
-  status?: "reserved" | "in_use" | "late";
   startedAtIso?: string | null;
 };
 
