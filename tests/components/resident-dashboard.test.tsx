@@ -7,13 +7,22 @@ import { CreditForms } from "../../src/app/credits/credit-forms";
 import { ReservationDayOverview } from "../../src/components/ReservationDayOverview";
 import { ReservationForm } from "../../src/app/reservations/reservation-form";
 import { ReservationTimeline } from "../../src/components/ReservationTimeline";
+import { RulesHighlight } from "../../src/components/RulesHighlight";
 
 describe("resident dashboard components", () => {
+  it("highlights the usage rules on the home page", () => {
+    const markup = renderToStaticMarkup(<RulesHighlight />);
+
+    expect(markup).toContain("Regras importantes");
+    expect(markup).toContain("10h por semana");
+    expect(markup).toContain("8h no mesmo dia");
+    expect(markup).toContain('href="/rules"');
+  });
   it("formats whole-hour weekly balance without minutes", () => {
-    const markup = renderToStaticMarkup(<BalanceCard availableMinutes={900} />);
+    const markup = renderToStaticMarkup(<BalanceCard availableMinutes={600} />);
 
     expect(markup).toContain("Saldo da semana");
-    expect(markup).toContain("15h");
+    expect(markup).toContain("10h");
     expect(markup).not.toContain("0min");
   });
 

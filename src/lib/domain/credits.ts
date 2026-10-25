@@ -13,7 +13,7 @@ export type AvailableMinutesInput = {
 };
 
 export function calculateWeeklyQuotaMinutes(input: WeeklyQuotaInput): number {
-  return 900 + input.manualAdjustmentMinutes;
+  return 600 + input.manualAdjustmentMinutes;
 }
 
 export function calculateAvailableMinutes(input: AvailableMinutesInput): number {

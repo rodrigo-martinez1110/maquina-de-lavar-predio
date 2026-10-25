@@ -1,7 +1,69 @@
 import type { ReservationWindow } from "../domain/reservations";
 import type { ScheduleReservation } from "../domain/schedule";
 import { availableMinutesFromWeeklyBalance, weekStartForReservation } from "../domain/weekly-balances";
+import { refundWeeklyBalanceForReservation } from "./weekly-balances";
 import { createServiceSupabaseClient } from "../supabase/server";
+
+export async function getMachineStatus() {
+  const supabase = createServiceSupabaseClient();
+  const { data: report, error } = await supabase
+    .from("machine_reports")
+    .select("kind, message, status, created_at")
+    .in("status", ["open", "maintenance"])
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  if (report?.status === "maintenance") return { label: "Em manutenção", tone: "red", detail: report.message };
+  if (report?.status === "open") return { label: "Problema relatado", tone: "amber", detail: report.message };
+  const now = new Date();
+  const { data: active, error: activeError } = await supabase
+    .from("reservations")
+    .select("starts_at, ends_at, status")
+    .in("status", ["reserved", "in_use", "late"])
+    .lte("starts_at", now.toISOString())
+    .gt("ends_at", now.toISOString())
+    .order("starts_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (activeError) throw activeError;
+  if (active?.status === "late") return { label: "Em uso (atrasada)", tone: "amber", detail: "A reserva atual ultrapassou o horário." };
+  if (active?.status === "in_use") return { label: "Em uso", tone: "blue", detail: "A máquina está sendo utilizada agora." };
+  if (active?.status === "reserved") return { label: "Reservada", tone: "blue", detail: "A máquina está reservada neste momento." };
+  return { label: "Livre", tone: "green", detail: "Nenhuma reserva ou problema ativo." };
+}
+
+export async function reconcileReservationStatuses() {
+  const supabase = createServiceSupabaseClient();
+  const now = new Date();
+  const cutoff = new Date(now.getTime() - 30 * 60 * 1000).toISOString();
+  const nowIso = now.toISOString();
+  const { data: expired, error: expiredError } = await supabase
+    .from("reservations")
+    .select("id, apartment_id, starts_at, estimated_minutes")
+    .eq("status", "reserved")
+    .lt("starts_at", cutoff);
+  if (expiredError) throw expiredError;
+  for (const reservation of expired ?? []) {
+    const { error } = await supabase
+      .from("reservations")
+      .update({ status: "released", released_at: nowIso, updated_at: nowIso })
+      .eq("id", reservation.id)
+      .eq("status", "reserved");
+    if (error) throw error;
+    await refundWeeklyBalanceForReservation({
+      apartmentId: reservation.apartment_id,
+      startIso: reservation.starts_at,
+      minutes: reservation.estimated_minutes,
+    });
+  }
+  const { error: lateError } = await supabase
+    .from("reservations")
+    .update({ status: "late", updated_at: nowIso })
+    .eq("status", "in_use")
+    .lt("ends_at", nowIso);
+  if (lateError) throw lateError;
+}
 
 export async function findReservationConflicts(window: ReservationWindow): Promise<Array<{ id: string }>> {
   const supabase = createServiceSupabaseClient();
@@ -32,7 +94,7 @@ export async function listReservationsForDay(
 
   const reservationsQuery = supabase
     .from("reservations")
-    .select("id, apartment_id, kind, status, starts_at, ends_at, estimated_minutes")
+    .select("id, apartment_id, kind, starts_at, ends_at, estimated_minutes, status, started_at")
     .lt("starts_at", dayEndIso)
     .gt("ends_at", dayStartIso);
   const filteredQuery = includeHistory
@@ -61,11 +123,37 @@ export async function listReservationsForDay(
     apartmentId: reservation.apartment_id,
     apartmentNumber: apartmentNumberById.get(reservation.apartment_id) ?? 0,
     kind: reservation.kind,
-    status: reservation.status,
     startsAtIso: reservation.starts_at,
     endsAtIso: reservation.ends_at,
     estimatedMinutes: reservation.estimated_minutes,
+    status: ["reserved", "in_use", "late"].includes(reservation.status)
+      ? (reservation.status as "reserved" | "in_use" | "late")
+      : undefined,
+    startedAtIso: reservation.started_at,
   }));
+}
+
+export async function startReservation(input: { reservationId: string; apartmentId: string }) {
+  const supabase = createServiceSupabaseClient();
+  const { error } = await supabase
+    .from("reservations")
+    .update({ status: "in_use", started_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+    .eq("id", input.reservationId)
+    .eq("apartment_id", input.apartmentId)
+    .eq("status", "reserved");
+  if (error) throw error;
+}
+
+export async function finishReservation(input: { reservationId: string; apartmentId: string }) {
+  const supabase = createServiceSupabaseClient();
+  const now = new Date().toISOString();
+  const { error } = await supabase
+    .from("reservations")
+    .update({ status: "finished", finished_at: now, updated_at: now })
+    .eq("id", input.reservationId)
+    .eq("apartment_id", input.apartmentId)
+    .in("status", ["reserved", "in_use", "late"]);
+  if (error) throw error;
 }
 
 export async function findActiveReservationById(reservationId: string) {

@@ -90,7 +90,7 @@ export async function getApartmentWeeklyAvailableMinutes(input: {
 
   const defaultQuotaMinutes = calculateWeeklyQuotaMinutes({
     residentCount: apartment.resident_count,
-    manualAdjustmentMinutes: apartment.manual_adjustment_minutes,
+    manualAdjustmentMinutes: 0,
   });
 
   const { data: balance, error: balanceError } = await supabase
@@ -171,7 +171,7 @@ export async function refundWeeklyBalanceForReservation(input: {
   const weekStart = weekStartForReservation(input.startIso);
   const { data: balance, error: balanceError } = await supabase
     .from("weekly_balances")
-    .select("id, refunded_minutes")
+    .select("id, reserved_minutes, refunded_minutes")
     .eq("apartment_id", input.apartmentId)
     .eq("week_start", weekStart)
     .single();
@@ -181,6 +181,7 @@ export async function refundWeeklyBalanceForReservation(input: {
   const { error } = await supabase
     .from("weekly_balances")
     .update({
+      reserved_minutes: Math.max(0, balance.reserved_minutes - input.minutes),
       refunded_minutes: balance.refunded_minutes + input.minutes,
       updated_at: new Date().toISOString(),
     })

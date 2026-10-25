@@ -63,6 +63,8 @@ export type Database = {
           actual_minutes: number | null;
           released_at: string | null;
           cancelled_at: string | null;
+          started_at: string | null;
+          finished_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -77,6 +79,8 @@ export type Database = {
           actual_minutes?: number | null;
           released_at?: string | null;
           cancelled_at?: string | null;
+          started_at?: string | null;
+          finished_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -91,6 +95,8 @@ export type Database = {
           actual_minutes?: number | null;
           released_at?: string | null;
           cancelled_at?: string | null;
+          started_at?: string | null;
+          finished_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -231,6 +237,37 @@ export type Database = {
           read_at?: string | null;
           created_at?: string;
         };
+        Relationships: [];
+      };
+      machine_reports: {
+        Row: {
+          id: string;
+          apartment_id: string;
+          status: "open" | "resolved" | "maintenance";
+          kind: string;
+          message: string;
+          created_at: string;
+          resolved_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          apartment_id: string;
+          status?: "open" | "resolved" | "maintenance";
+          kind: string;
+          message: string;
+          created_at?: string;
+          resolved_at?: string | null;
+        };
+        Update: {
+          status?: "open" | "resolved" | "maintenance";
+          resolved_at?: string | null;
+        };
+        Relationships: [];
+      };
+      rule_acknowledgments: {
+        Row: { apartment_id: string; version: string; acknowledged_at: string };
+        Insert: { apartment_id: string; version: string; acknowledged_at?: string };
+        Update: { acknowledged_at?: string };
         Relationships: [];
       };
       audit_logs: {
