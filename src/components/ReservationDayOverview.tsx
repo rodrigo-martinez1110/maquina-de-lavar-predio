@@ -40,8 +40,12 @@ export function ReservationDayOverview(props: {
                     `; Apt ${reservation.apartmentNumber} · ${reservationStatusLabel(reservation.reservationStatus, reservation.nonUseReason)}`,
                   ).join("") ?? ""}`
                 : props.isHistorical || slot.status === "history"
-                  ? `${slot.time} ${reservationStatusLabel(slot.reservationStatus, slot.nonUseReason)} pelo apartamento ${slot.apartmentNumber}`
-                  : `${slot.time} ocupado pelo apartamento ${slot.apartmentNumber}`
+                  ? `${slot.time} ${reservationStatusLabel(slot.reservationStatus, slot.nonUseReason)} pelo apartamento ${slot.apartmentNumber}${slot.additionalReservations?.map((reservation) =>
+                      `; Apt ${reservation.apartmentNumber} · ${reservationStatusLabel(reservation.reservationStatus, reservation.nonUseReason)}`,
+                    ).join("") ?? ""}`
+                  : `${slot.time} ocupado pelo apartamento ${slot.apartmentNumber}${slot.additionalReservations?.map((reservation) =>
+                      `; Apt ${reservation.apartmentNumber} · ${reservationStatusLabel(reservation.reservationStatus, reservation.nonUseReason)}`,
+                    ).join("") ?? ""}`
             }
             className={clsx(
               "flex min-h-10 flex-col items-center justify-center rounded-md border px-1 text-center text-[11px] font-semibold",
