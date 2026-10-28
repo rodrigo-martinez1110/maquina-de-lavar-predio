@@ -57,6 +57,7 @@ export type Database = {
           apartment_id: string;
           kind: Database["public"]["Enums"]["reservation_kind"];
           status: Database["public"]["Enums"]["reservation_status"];
+          non_use_reason: "occupied" | "machine_problem" | "other" | null;
           starts_at: string;
           ends_at: string;
           estimated_minutes: number;
@@ -73,6 +74,7 @@ export type Database = {
           apartment_id: string;
           kind: Database["public"]["Enums"]["reservation_kind"];
           status?: Database["public"]["Enums"]["reservation_status"];
+          non_use_reason?: "occupied" | "machine_problem" | "other" | null;
           starts_at: string;
           ends_at: string;
           estimated_minutes: number;
@@ -89,6 +91,7 @@ export type Database = {
           apartment_id?: string;
           kind?: Database["public"]["Enums"]["reservation_kind"];
           status?: Database["public"]["Enums"]["reservation_status"];
+          non_use_reason?: "occupied" | "machine_problem" | "other" | null;
           starts_at?: string;
           ends_at?: string;
           estimated_minutes?: number;
@@ -306,6 +309,15 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      report_reservation_nonuse: {
+        Args: {
+          p_apartment_id: string;
+          p_details?: string | null;
+          p_reason: string;
+          p_reservation_id: string;
+        };
+        Returns: undefined;
+      };
       create_reservation_with_balance: {
         Args: {
           p_apartment_id: string;
