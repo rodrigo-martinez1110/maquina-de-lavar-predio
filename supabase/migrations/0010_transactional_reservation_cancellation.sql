@@ -12,6 +12,7 @@ declare
   v_balance weekly_balances%rowtype;
   v_week_start date;
   v_cancelled_at timestamptz;
+  v_minutes_before_start integer;
   v_refund_minutes integer := 0;
 begin
   select * into v_reservation
@@ -43,10 +44,13 @@ begin
 
   -- Check the actual cancellation time after any wait for either row lock.
   v_cancelled_at := clock_timestamp();
-  if v_cancelled_at >= v_reservation.starts_at then
+  v_minutes_before_start := round(
+    extract(epoch from (v_reservation.starts_at - v_cancelled_at)) / 60.0
+  )::integer;
+  if v_minutes_before_start <= 0 then
     raise exception 'Nao e possivel cancelar reserva que ja comecou' using errcode = 'P0001';
   end if;
-  if v_cancelled_at <= v_reservation.starts_at - interval '60 minutes' then
+  if v_minutes_before_start >= 60 then
     v_refund_minutes := v_reservation.estimated_minutes;
   end if;
 

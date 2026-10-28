@@ -17,6 +17,7 @@ declare
   v_reservation reservations%rowtype;
   v_balance weekly_balances%rowtype;
   v_week_start date;
+  v_reported_at timestamptz;
 begin
   if p_reason is null or p_reason not in ('occupied', 'machine_problem', 'other') then
     raise exception 'Motivo invalido' using errcode = 'P0001';
@@ -36,10 +37,6 @@ begin
   if not found or v_reservation.apartment_id <> p_apartment_id then
     raise exception 'Reserva nao encontrada' using errcode = 'P0001';
   end if;
-  if v_reservation.status not in ('reserved', 'in_use', 'late')
-     or now() < v_reservation.starts_at or now() >= v_reservation.ends_at then
-    raise exception 'Reserva fora do periodo para marcar nao utilizacao' using errcode = 'P0001';
-  end if;
 
   v_week_start := date_trunc(
     'week', v_reservation.starts_at at time zone 'America/Sao_Paulo'
@@ -52,14 +49,20 @@ begin
     raise exception 'Saldo semanal nao encontrado' using errcode = 'P0001';
   end if;
 
+  v_reported_at := clock_timestamp();
+  if v_reservation.status not in ('reserved', 'in_use', 'late')
+     or v_reported_at < v_reservation.starts_at or v_reported_at >= v_reservation.ends_at then
+    raise exception 'Reserva fora do periodo para marcar nao utilizacao' using errcode = 'P0001';
+  end if;
+
   update reservations
   set status = 'unregistered', non_use_reason = p_reason,
-      released_at = now(), updated_at = now()
+      released_at = v_reported_at, updated_at = v_reported_at
   where id = p_reservation_id;
 
   update weekly_balances
   set refunded_minutes = refunded_minutes + v_reservation.estimated_minutes,
-      updated_at = now()
+      updated_at = v_reported_at
   where id = v_balance.id;
 
   insert into audit_logs (actor_kind, actor_id, action, entity_type, entity_id, metadata)
