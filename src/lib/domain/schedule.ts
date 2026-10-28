@@ -1,6 +1,7 @@
 import type { Database } from "../database.types";
 
 export type ReservationStatus = Database["public"]["Enums"]["reservation_status"];
+export type ReservationNonUseReason = "occupied" | "machine_problem" | "other";
 
 export type ScheduleReservation = {
   id: string;
@@ -12,6 +13,7 @@ export type ScheduleReservation = {
   endsAtIso: string;
   estimatedMinutes: number;
   startedAtIso?: string | null;
+  nonUseReason?: ReservationNonUseReason | null;
 };
 
 export type DaySlot =

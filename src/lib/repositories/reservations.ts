@@ -1,7 +1,6 @@
 import type { ReservationWindow } from "../domain/reservations";
-import type { ScheduleReservation } from "../domain/schedule";
+import type { ReservationNonUseReason, ScheduleReservation } from "../domain/schedule";
 import { availableMinutesFromWeeklyBalance, weekStartForReservation } from "../domain/weekly-balances";
-import { refundWeeklyBalanceForReservation } from "./weekly-balances";
 import { createServiceSupabaseClient } from "../supabase/server";
 
 export async function getMachineStatus() {
@@ -36,27 +35,13 @@ export async function getMachineStatus() {
 export async function reconcileReservationStatuses() {
   const supabase = createServiceSupabaseClient();
   const now = new Date();
-  const cutoff = new Date(now.getTime() - 30 * 60 * 1000).toISOString();
   const nowIso = now.toISOString();
-  const { data: expired, error: expiredError } = await supabase
+  const { error: expiredError } = await supabase
     .from("reservations")
-    .select("id, apartment_id, starts_at, estimated_minutes")
+    .update({ status: "finished", finished_at: nowIso, updated_at: nowIso })
     .eq("status", "reserved")
-    .lt("starts_at", cutoff);
+    .lte("ends_at", nowIso);
   if (expiredError) throw expiredError;
-  for (const reservation of expired ?? []) {
-    const { error } = await supabase
-      .from("reservations")
-      .update({ status: "released", released_at: nowIso, updated_at: nowIso })
-      .eq("id", reservation.id)
-      .eq("status", "reserved");
-    if (error) throw error;
-    await refundWeeklyBalanceForReservation({
-      apartmentId: reservation.apartment_id,
-      startIso: reservation.starts_at,
-      minutes: reservation.estimated_minutes,
-    });
-  }
   const { error: lateError } = await supabase
     .from("reservations")
     .update({ status: "late", updated_at: nowIso })
@@ -94,12 +79,12 @@ export async function listReservationsForDay(
 
   const reservationsQuery = supabase
     .from("reservations")
-    .select("id, apartment_id, kind, starts_at, ends_at, estimated_minutes, status, started_at")
+    .select("id, apartment_id, kind, starts_at, ends_at, estimated_minutes, status, started_at, non_use_reason")
     .lt("starts_at", dayEndIso)
     .gt("ends_at", dayStartIso);
   const filteredQuery = includeHistory
     ? reservationsQuery
-    : reservationsQuery.in("status", ["reserved", "in_use", "late"]);
+    : reservationsQuery.in("status", ["reserved", "in_use", "late", "unregistered"]);
   const { data: reservations, error } = await filteredQuery.order("starts_at", { ascending: true });
 
   if (error) throw error;
@@ -128,7 +113,24 @@ export async function listReservationsForDay(
     estimatedMinutes: reservation.estimated_minutes,
     status: reservation.status,
     startedAtIso: reservation.started_at,
+    nonUseReason: reservation.non_use_reason,
   }));
+}
+
+export async function markReservationNotUsed(input: {
+  reservationId: string;
+  apartmentId: string;
+  reason: ReservationNonUseReason;
+  details?: string;
+}) {
+  const supabase = createServiceSupabaseClient();
+  const { error } = await supabase.rpc("report_reservation_nonuse", {
+    p_reservation_id: input.reservationId,
+    p_apartment_id: input.apartmentId,
+    p_reason: input.reason,
+    p_details: input.details ?? null,
+  });
+  if (error) throw error;
 }
 
 export async function startReservation(input: { reservationId: string; apartmentId: string }) {
