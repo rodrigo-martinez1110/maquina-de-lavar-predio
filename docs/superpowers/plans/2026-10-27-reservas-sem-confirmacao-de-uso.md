@@ -18,7 +18,8 @@
 - Atualizar `src/lib/database.types.ts` para tipar a RPC.
 - Atualizar `src/lib/repositories/reservations.ts` para chamar a RPC e concluir reservas vencidas sem estornar saldo.
 - Atualizar `src/lib/actions/reservation-usage.ts` para expor a ação autenticada e revalidar as telas afetadas.
-- Atualizar `src/app/reservations/my-reservations.tsx` para remover “Comecei a usar”, conservar “Terminei de usar” e incluir o formulário de não utilização com motivo.
+- Remover o antigo `startReservationAction` de `src/lib/actions/reservation-usage.ts` e a função não mais chamada `startReservation` de `src/lib/repositories/reservations.ts`.
+- Atualizar `src/app/reservations/page.tsx` e `src/app/reservations/my-reservations.tsx` para manter a reserva não utilizada visível no cartão de hoje após salvar, remover “Comecei a usar”, conservar “Terminei de usar” e incluir o formulário de não utilização com motivo.
 - Atualizar `src/lib/domain/schedule.ts`, `src/components/reservation-status.ts`, `src/components/ReservationDayOverview.tsx` e `src/components/ReservationTimeline.tsx` para carregar e exibir a categoria na grade histórica; blocos liberados no dia atual seguem livres e clicáveis.
 - Atualizar `src/app/rules/page.tsx` para retirar a regra de confirmação de início e explicar como marcar a não utilização.
 
@@ -132,10 +133,11 @@ A nova operação incrementa apenas `refunded_minutes`: o cálculo de saldo subt
 **Files:**
 - Modify: `src/lib/repositories/reservations.ts`
 - Modify: `src/lib/actions/reservation-usage.ts`
+- Modify: `src/lib/domain/schedule.ts`
 
 - [ ] **Step 1: Criar a função de repositório**
 
-Adicionar `markReservationNotUsed(input: { reservationId: string; apartmentId: string; reason: "occupied" | "machine_problem" | "other"; details?: string })`. Chamar `createServiceSupabaseClient().rpc("report_reservation_nonuse", { p_reservation_id: input.reservationId, p_apartment_id: input.apartmentId, p_reason: input.reason, p_details: input.details ?? null })` e propagar qualquer erro. Em `listReservationsForDay`, selecionar `non_use_reason` e mapeá-lo para `ScheduleReservation.nonUseReason`. Incluir `unregistered` também na consulta de hoje, sem incluí-lo entre status que criam conflito ou contagem de ocupação.
+Adicionar `ReservationNonUseReason = "occupied" | "machine_problem" | "other"` e o campo opcional `ScheduleReservation.nonUseReason?: ReservationNonUseReason | null` em `src/lib/domain/schedule.ts`. Adicionar `markReservationNotUsed(input: { reservationId: string; apartmentId: string; reason: ReservationNonUseReason; details?: string })`. Chamar `createServiceSupabaseClient().rpc("report_reservation_nonuse", { p_reservation_id: input.reservationId, p_apartment_id: input.apartmentId, p_reason: input.reason, p_details: input.details ?? null })` e propagar qualquer erro. Em `listReservationsForDay`, selecionar `non_use_reason` e mapeá-lo para `ScheduleReservation.nonUseReason`. Incluir `unregistered` também na consulta de hoje, sem incluí-lo entre status que criam conflito ou contagem de ocupação.
 
 - [ ] **Step 2: Alterar a reconciliação de reservas não iniciadas**
 
@@ -158,13 +160,16 @@ Em `reservation-usage.ts`, ler `reservationId`, `reason` e `details` do `FormDat
 ### Task 3: Atualizar a experiência do morador e as regras
 
 **Files:**
+- Modify: `src/app/reservations/page.tsx`
 - Modify: `src/app/reservations/my-reservations.tsx`
+- Modify: `src/lib/actions/reservation-usage.ts`
+- Modify: `src/lib/repositories/reservations.ts`
 - Modify: `src/components/reservation-status.ts`
 - Modify: `src/app/rules/page.tsx`
 
 - [ ] **Step 1: Retirar a confirmação inicial**
 
-Remover o import e o botão `startReservationAction`/“Comecei a usar”. Exibir “Terminei de usar” quando `startsAtIso <= now < endsAtIso` e o status for `reserved`, `in_use` ou `late`. Para registros antigos com status `late` após o fim, conservar o botão até que o morador encerre, preservando a chamada atual de `finishReservationAction`.
+Remover o import e o botão `startReservationAction`/“Comecei a usar”, além da ação e da função de repositório que ficarem sem uso. Exibir “Terminei de usar” quando `startsAtIso <= now < endsAtIso` e o status for `reserved`, `in_use` ou `late`. Para registros antigos com status `late` após o fim, conservar o botão até que o morador encerre, preservando a chamada atual de `finishReservationAction`. Atualizar a filtragem de `myReservations` em `page.tsx` para incluir reservas `unregistered` próprias de hoje; renderizar o status e a categoria no cartão sem botões de cancelar, terminar ou marcar novamente, para manter a confirmação visível depois da revalidação.
 
 - [ ] **Step 2: Incluir formulário de não utilização**
 
@@ -172,7 +177,7 @@ Exibir a ação apenas quando `startsAtIso <= now < endsAtIso` e o status for `r
 
 - [ ] **Step 3: Traduzir o novo status**
 
-Em `src/lib/domain/schedule.ts`, adicionar `ReservationNonUseReason = "occupied" | "machine_problem" | "other"` e `ScheduleReservation.nonUseReason: ReservationNonUseReason | null`. Adicionar `nonUseReason?: ReservationNonUseReason | null` aos slots `busy` e `history` e a cada item de `additionalReservations`. Adicionar `historyReservations?: Array<{ apartmentNumber: number; reservationStatus: ReservationStatus; nonUseReason: ReservationNonUseReason | null }>` aos slots `free` para anotações em blocos disponíveis.
+Em `src/lib/domain/schedule.ts`, adicionar `nonUseReason?: ReservationNonUseReason | null` aos slots `busy` e `history` e a cada item de `additionalReservations`. Adicionar `historyReservations?: Array<{ apartmentNumber: number; reservationStatus: ReservationStatus; nonUseReason: ReservationNonUseReason | null }>` aos slots `free` para anotações em blocos disponíveis.
 
 Em `buildDaySlots`, se a data for hoje, não existir uma reserva ativa no bloco e houver uma marcação `unregistered`, criar um slot `free` com a anotação correspondente; assim o bloco fica livre para reserva e entra em `buildFreeWindows`. Em slots ocupados por uma reserva ativa, manter a reserva ativa em primeiro lugar e carregar os motivos de eventos adicionais em `additionalReservations`. Para datas passadas, manter status `history` e motivo de cada marcação.
 
@@ -192,6 +197,9 @@ Remover a instrução de tocar em “Comecei a usar”. Informar que a reserva �
 - Review: `supabase/migrations/0009_reservation_non_use.sql`
 - Review: `src/lib/repositories/reservations.ts`
 - Review: `src/app/reservations/my-reservations.tsx`
+- Review: `src/app/reservations/page.tsx`
+- Review: `src/lib/actions/reservation-usage.ts`
+- Review: `src/lib/repositories/reservations.ts`
 - Review: `src/lib/domain/schedule.ts`
 - Review: `src/components/ReservationDayOverview.tsx`
 - Review: `src/components/ReservationTimeline.tsx`
