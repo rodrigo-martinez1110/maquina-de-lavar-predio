@@ -179,7 +179,7 @@ Exibir a ação apenas quando `startsAtIso <= now < endsAtIso` e o status for `r
 
 Em `src/lib/domain/schedule.ts`, adicionar `nonUseReason?: ReservationNonUseReason | null` aos slots `busy` e `history` e a cada item de `additionalReservations`. Adicionar `historyReservations?: Array<{ apartmentNumber: number; reservationStatus: ReservationStatus; nonUseReason: ReservationNonUseReason | null }>` aos slots `free` para anotações em blocos disponíveis.
 
-Em `buildDaySlots`, se a data for hoje, não existir uma reserva ativa no bloco e houver uma marcação `unregistered`, criar um slot `free` com a anotação correspondente; assim o bloco fica livre para reserva e entra em `buildFreeWindows`. Em slots ocupados por uma reserva ativa, manter a reserva ativa em primeiro lugar e carregar os motivos de eventos adicionais em `additionalReservations`. Para datas passadas, manter status `history` e motivo de cada marcação.
+Em `buildDaySlots`, se a data for hoje, não existir uma reserva ativa no bloco e houver uma marcação `unregistered`, criar um slot `free` com a anotação correspondente somente quando o início do bloco ainda não passou; os demais blocos do registro continuam como `history`. Assim apenas o tempo futuro fica livre para reserva e entra em `buildFreeWindows`. Em slots ocupados por uma reserva ativa, manter a reserva ativa em primeiro lugar e carregar os motivos de eventos adicionais em `additionalReservations`. Para datas passadas, manter status `history` e motivo de cada marcação.
 
 Em `reservation-status.ts`, mapear `unregistered` para `Não conseguiu usar` e adicionar rótulos de categoria (`Máquina ocupada`, `Problema na máquina`, `Outro`); não alterar os rótulos dos demais status.
 
@@ -207,7 +207,7 @@ Remover a instrução de tocar em “Comecei a usar”. Informar que a reserva �
 
 - [ ] **Step 1: Revisar os caminhos de atualização e os status**
 
-Confirmar que `buildDaySlots`, conflitos e resumo diário consideram apenas `reserved`, `in_use` e `late` como ocupação. `unregistered` e `finished` não bloqueiam. No dia atual, blocos com eventos `unregistered` continuam livres para reserva e mostram apenas a categoria; em datas passadas, a grade mostra status e categoria. O detalhe livre permanece somente em `audit_logs`. Confirmar que a devolução soma os minutos a `refunded_minutes` sem decrementar também `reserved_minutes`, para recompor o saldo sem crédito em duplicidade.
+Confirmar que `buildDaySlots`, conflitos e resumo diário consideram apenas `reserved`, `in_use` e `late` como ocupação. `unregistered` e `finished` não bloqueiam. No dia atual, apenas os blocos `unregistered` cujo início ainda não passou continuam livres para reserva e mostram a categoria; blocos passados e datas anteriores mostram status e categoria históricos. O detalhe livre permanece somente em `audit_logs`. Confirmar que a devolução soma os minutos a `refunded_minutes` sem decrementar também `reserved_minutes`, para recompor o saldo sem crédito em duplicidade.
 
 - [ ] **Step 2: Conferir formatação dos arquivos**
 

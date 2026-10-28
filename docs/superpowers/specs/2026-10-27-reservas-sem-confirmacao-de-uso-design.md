@@ -32,7 +32,7 @@ Remover a dependência de o morador lembrar de tocar em “Comecei a usar”. A 
 
 Guardar a categoria (`occupied`, `machine_problem` ou `other`) em `reservations` para mostrá-la na grade histórica a todos os moradores junto do status “Não conseguiu usar”. Usar o `audit_logs` existente com uma ação específica de reserva não utilizada; os metadados guardam a categoria, o detalhe de “Outro” e o apartamento responsável. O detalhe livre não aparece para os moradores, ficando somente no registro administrativo.
 
-No dia atual, os blocos liberados por uma marcação de não utilização devem continuar clicáveis e disponíveis para uma nova reserva, exibindo a categoria como anotação do histórico no mesmo bloco. Em datas passadas, a grade mostra o status e a categoria como evento histórico.
+No dia atual, os blocos futuros liberados por uma marcação de não utilização devem continuar clicáveis e disponíveis para uma nova reserva, exibindo a categoria como anotação do histórico no mesmo bloco. Blocos cujo início já passou permanecem como histórico e não são apresentados como disponibilidade nova. Em datas passadas, a grade mostra o status e a categoria como evento histórico.
 
 ## Concorrência e saldo
 
@@ -50,7 +50,7 @@ A transição de status, o crédito dos minutos e o registro de auditoria devem 
 - Confirmar que reservas sem confirmação continuam bloqueando o horário até o fim.
 - Confirmar que a ação de não utilização exige um motivo, aceita apenas reservas próprias em andamento e devolve o saldo uma única vez.
 - Confirmar que a categoria fica visível na grade para todos e o detalhe livre fica restrito ao registro administrativo.
-- Confirmar que, no dia atual, os blocos liberados continuam disponíveis para nova reserva mesmo exibindo o evento de não utilização.
+- Confirmar que, no dia atual, apenas os blocos liberados cujo início ainda não passou continuam disponíveis para nova reserva mesmo exibindo o evento de não utilização.
 - Confirmar que a conclusão automática no fim do horário não devolve saldo e mantém a reserva no histórico.
 - Confirmar que “Terminei de usar” continua liberando o restante do horário sem devolução.
 - Executar a compilação de produção antes de publicar. Não adicionar nem executar testes nesta tarefa.
