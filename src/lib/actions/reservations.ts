@@ -230,31 +230,11 @@ export async function cancelReservationAction(formData: FormData) {
   const reservationId = String(formData.get("reservationId") ?? "");
   if (!reservationId) throw new Error("Reserva invalida");
 
-  const {
-    findActiveReservationById,
-    markReservationCancelled,
-  } = await import("../repositories/reservations");
-  const { refundWeeklyBalanceForReservation } = await import("../repositories/weekly-balances");
-  const { writeAuditLog } = await import("../repositories/audit-logs");
-  const reservation = await findActiveReservationById(reservationId);
-  const nowIso = new Date().toISOString();
+  const { cancelReservationWithBalance } = await import("../repositories/reservations");
 
-  await cancelReservationUseCase({
-    actorApartmentId: session.apartmentId,
-    nowIso,
-    reservation,
-    updateReservation: markReservationCancelled,
-    refundBalance: refundWeeklyBalanceForReservation,
-    audit: async (cancelledReservationId, refundMinutes) => {
-      await writeAuditLog({
-        actorKind: "apartment",
-        actorId: session.apartmentId,
-        action: "reservation.cancelled",
-        entityType: "reservation",
-        entityId: cancelledReservationId,
-        metadata: { refundMinutes },
-      });
-    },
+  await cancelReservationWithBalance({
+    apartmentId: session.apartmentId,
+    reservationId,
   });
 
   revalidatePath("/reservations");

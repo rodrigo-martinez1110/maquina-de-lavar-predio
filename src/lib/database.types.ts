@@ -309,6 +309,13 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      cancel_reservation_with_balance: {
+        Args: {
+          p_apartment_id: string;
+          p_reservation_id: string;
+        };
+        Returns: undefined;
+      };
       report_reservation_nonuse: {
         Args: {
           p_apartment_id: string;

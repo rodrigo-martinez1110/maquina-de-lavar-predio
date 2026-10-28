@@ -161,31 +161,3 @@ export async function applyAcceptedTransferToBalances(input: {
     .eq("id", toBalance.id);
   if (receivedError) throw receivedError;
 }
-
-export async function refundWeeklyBalanceForReservation(input: {
-  apartmentId: string;
-  startIso: string;
-  minutes: number;
-}) {
-  const supabase = createServiceSupabaseClient();
-  const weekStart = weekStartForReservation(input.startIso);
-  const { data: balance, error: balanceError } = await supabase
-    .from("weekly_balances")
-    .select("id, reserved_minutes, refunded_minutes")
-    .eq("apartment_id", input.apartmentId)
-    .eq("week_start", weekStart)
-    .single();
-
-  if (balanceError) throw balanceError;
-
-  const { error } = await supabase
-    .from("weekly_balances")
-    .update({
-      reserved_minutes: Math.max(0, balance.reserved_minutes - input.minutes),
-      refunded_minutes: balance.refunded_minutes + input.minutes,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", balance.id);
-
-  if (error) throw error;
-}

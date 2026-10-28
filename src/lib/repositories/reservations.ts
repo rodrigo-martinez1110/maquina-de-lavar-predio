@@ -244,19 +244,15 @@ export async function updateReservationStatus(
   if (error) throw error;
 }
 
-export async function markReservationCancelled(input: {
+export async function cancelReservationWithBalance(input: {
   reservationId: string;
-  cancelledAtIso: string;
+  apartmentId: string;
 }) {
   const supabase = createServiceSupabaseClient();
-  const { error } = await supabase
-    .from("reservations")
-    .update({
-      status: "cancelled",
-      cancelled_at: input.cancelledAtIso,
-      updated_at: input.cancelledAtIso,
-    })
-    .eq("id", input.reservationId);
+  const { error } = await supabase.rpc("cancel_reservation_with_balance", {
+    p_reservation_id: input.reservationId,
+    p_apartment_id: input.apartmentId,
+  });
 
   if (error) throw error;
 }
