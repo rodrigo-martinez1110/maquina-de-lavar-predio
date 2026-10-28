@@ -15,7 +15,7 @@ export default async function RulesPage() {
         <div className="mt-5 space-y-4 text-sm text-slate-700">
           <p><strong>1. Limite:</strong> cada apartamento recebe 10 horas por semana e pode reservar no máximo 8 horas no mesmo dia.</p>
           <p><strong>2. Reserve o tempo real:</strong> inclua lavagem, secagem e o tempo para retirar as roupas. Exemplo: se o ciclo pode levar 3 horas, reserve 3 horas.</p>
-          <p><strong>3. Comece no horário:</strong> ao iniciar, informe “Comecei a usar”. Se a reserva não for iniciada em até 30 minutos, ela poderá ser liberada.</p>
+          <p><strong>3. Uso da reserva:</strong> a reserva é considerada utilizada no horário reservado. Se não conseguir usar a máquina, marque “Não conseguiu usar” durante o período da reserva e informe o motivo para receber os minutos de volta.</p>
           <p><strong>4. A próxima reserva tem prioridade:</strong> uma extensão só é permitida se não houver outra reserva depois. Não retire roupas de outra pessoa sem tentar contato ou avisar pelo app.</p>
           <p><strong>5. Se houver problema:</strong> informe “Máquina ocupada”, “Terminei” ou “Problema/manutenção”. O aviso fica visível para todos e novas reservas podem ser bloqueadas.</p>
           <p><strong>6. Bom senso:</strong> retire as roupas assim que o ciclo terminar, deixe a máquina limpa e avise quando perceber qualquer defeito.</p>

@@ -1,6 +1,6 @@
 import clsx from "clsx";
 import type { DaySlot, FreeWindow } from "../lib/domain/schedule";
-import { reservationStatusLabels } from "./reservation-status";
+import { reservationStatusLabel } from "./reservation-status";
 
 function formatDuration(minutes: number) {
   const hours = Math.floor(minutes / 60);
@@ -36,9 +36,11 @@ export function ReservationDayOverview(props: {
           <a
             aria-label={
               slot.status === "free"
-                ? `${slot.time} livre`
+                ? `${slot.time} livre${slot.historyReservations?.map((reservation) =>
+                    `; Apt ${reservation.apartmentNumber} · ${reservationStatusLabel(reservation.reservationStatus, reservation.nonUseReason)}`,
+                  ).join("") ?? ""}`
                 : props.isHistorical || slot.status === "history"
-                  ? `${slot.time} ${reservationStatusLabels[slot.reservationStatus]} pelo apartamento ${slot.apartmentNumber}`
+                  ? `${slot.time} ${reservationStatusLabel(slot.reservationStatus, slot.nonUseReason)} pelo apartamento ${slot.apartmentNumber}`
                   : `${slot.time} ocupado pelo apartamento ${slot.apartmentNumber}`
             }
             className={clsx(
@@ -61,15 +63,24 @@ export function ReservationDayOverview(props: {
               <>
                 <span>Apt {slot.apartmentNumber}</span>
                 {props.isHistorical || slot.status === "history" ? (
-                  <span>{reservationStatusLabels[slot.reservationStatus]}</span>
+                  <span>{reservationStatusLabel(slot.reservationStatus, slot.nonUseReason)}</span>
                 ) : null}
                 {slot.additionalReservations?.map((reservation, index) => (
                   <span key={`${reservation.apartmentNumber}-${reservation.reservationStatus}-${index}`}>
-                    Apt {reservation.apartmentNumber} · {reservationStatusLabels[reservation.reservationStatus]}
+                    Apt {reservation.apartmentNumber} · {reservationStatusLabel(reservation.reservationStatus, reservation.nonUseReason)}
                   </span>
                 ))}
               </>
-            ) : null}
+            ) : (
+              <>
+                <span>Livre</span>
+                {slot.historyReservations?.map((reservation, index) => (
+                  <span key={`${reservation.apartmentNumber}-${reservation.reservationStatus}-${index}`}>
+                    Apt {reservation.apartmentNumber} · {reservationStatusLabel(reservation.reservationStatus, reservation.nonUseReason)}
+                  </span>
+                ))}
+              </>
+            )}
           </a>
         ))}
       </div>

@@ -20,6 +20,11 @@ export type DaySlot =
   | {
       time: string;
       status: "free";
+      historyReservations?: Array<{
+        apartmentNumber: number;
+        reservationStatus: ReservationStatus;
+        nonUseReason: ReservationNonUseReason | null;
+      }>;
     }
   | {
       time: string;
@@ -28,9 +33,11 @@ export type DaySlot =
       reservationId: string;
       kind: ScheduleReservation["kind"];
       reservationStatus: ReservationStatus;
+      nonUseReason?: ReservationNonUseReason | null;
       additionalReservations?: Array<{
         apartmentNumber: number;
         reservationStatus: ReservationStatus;
+        nonUseReason?: ReservationNonUseReason | null;
       }>;
     }
   | {
@@ -40,9 +47,11 @@ export type DaySlot =
       reservationId: string;
       kind: ScheduleReservation["kind"];
       reservationStatus: ReservationStatus;
+      nonUseReason?: ReservationNonUseReason | null;
       additionalReservations?: Array<{
         apartmentNumber: number;
         reservationStatus: ReservationStatus;
+        nonUseReason?: ReservationNonUseReason | null;
       }>;
     };
 
@@ -90,6 +99,8 @@ export function buildDaySlots(input: {
   reservations: ScheduleReservation[];
 }): DaySlot[] {
   const slots: DaySlot[] = [];
+  const now = new Date();
+  const today = dateInSaoPauloFromIso(now.toISOString());
 
   for (
     let slotMinutes = FIRST_SLOT_MINUTES;
@@ -103,22 +114,43 @@ export function buildDaySlots(input: {
     });
 
     if (matchingReservations.length > 0) {
-      const reservation = matchingReservations.find((candidate) =>
+      const activeReservation = matchingReservations.find((candidate) =>
         ["reserved", "in_use", "late"].includes(candidate.status),
-      ) ?? matchingReservations[0];
-      const isActive = ["reserved", "in_use", "late"].includes(reservation.status);
+      );
+      const time = timeFromMinutes(slotMinutes);
+      if (
+        input.date === today &&
+        !activeReservation &&
+        matchingReservations.some((candidate) => candidate.status === "unregistered") &&
+        new Date(`${input.date}T${time}:00-03:00`).getTime() >= now.getTime()
+      ) {
+        slots.push({
+          time,
+          status: "free",
+          historyReservations: matchingReservations.map((candidate) => ({
+            apartmentNumber: candidate.apartmentNumber,
+            reservationStatus: candidate.status,
+            nonUseReason: candidate.nonUseReason ?? null,
+          })),
+        });
+        continue;
+      }
+      const reservation = activeReservation ?? matchingReservations[0];
+      const isActive = Boolean(activeReservation) && input.date >= today;
       slots.push({
-        time: timeFromMinutes(slotMinutes),
+        time,
         status: isActive ? "busy" : "history",
         apartmentNumber: reservation.apartmentNumber,
         reservationId: reservation.id,
         kind: reservation.kind,
         reservationStatus: reservation.status,
+        nonUseReason: reservation.nonUseReason ?? null,
         additionalReservations: matchingReservations
           .filter((candidate) => candidate.id !== reservation.id)
           .map((candidate) => ({
             apartmentNumber: candidate.apartmentNumber,
             reservationStatus: candidate.status,
+            nonUseReason: candidate.nonUseReason ?? null,
           })),
       });
     } else {

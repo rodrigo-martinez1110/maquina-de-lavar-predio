@@ -133,17 +133,6 @@ export async function markReservationNotUsed(input: {
   if (error) throw error;
 }
 
-export async function startReservation(input: { reservationId: string; apartmentId: string }) {
-  const supabase = createServiceSupabaseClient();
-  const { error } = await supabase
-    .from("reservations")
-    .update({ status: "in_use", started_at: new Date().toISOString(), updated_at: new Date().toISOString() })
-    .eq("id", input.reservationId)
-    .eq("apartment_id", input.apartmentId)
-    .eq("status", "reserved");
-  if (error) throw error;
-}
-
 export async function finishReservation(input: { reservationId: string; apartmentId: string }) {
   const supabase = createServiceSupabaseClient();
   const now = new Date().toISOString();

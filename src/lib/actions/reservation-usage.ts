@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { messageFromUnknownError } from "../domain/action-errors";
 async function reservationId(formData: FormData) {
   const id = String(formData.get("reservationId") ?? "").trim();
   if (!id) throw new Error("Reserva invalida");
@@ -8,13 +9,6 @@ async function reservationId(formData: FormData) {
   const session = await getApartmentSession();
   if (!session) throw new Error("Sessao expirada");
   return { id, apartmentId: session.apartmentId };
-}
-
-export async function startReservationAction(formData: FormData) {
-  const input = await reservationId(formData);
-  const { startReservation } = await import("../repositories/reservations");
-  await startReservation({ reservationId: input.id, apartmentId: input.apartmentId });
-  revalidatePath("/reservations");
 }
 
 export async function finishReservationAction(formData: FormData) {
@@ -46,4 +40,21 @@ export async function markReservationNotUsedAction(formData: FormData) {
   });
   revalidatePath("/reservations");
   revalidatePath("/");
+}
+
+export type ReservationNonUseState = {
+  error?: string;
+  success?: string;
+};
+
+export async function markReservationNotUsedFromForm(
+  _previousState: ReservationNonUseState,
+  formData: FormData,
+): Promise<ReservationNonUseState> {
+  try {
+    await markReservationNotUsedAction(formData);
+    return { success: "Não utilização registrada. Os minutos da reserva foram devolvidos." };
+  } catch (error) {
+    return { error: messageFromUnknownError(error) };
+  }
 }

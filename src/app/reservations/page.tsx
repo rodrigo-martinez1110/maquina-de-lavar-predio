@@ -36,7 +36,8 @@ export default async function ReservationsPage({ searchParams }: ReservationsPag
   const params = searchParams ? await searchParams : {};
   const selectedDate = dateFromSearchParam(params.date);
   const selectedStart = startFromSearchParam(params.start);
-  const isHistoricalDate = selectedDate < todayInSaoPaulo();
+  const today = todayInSaoPaulo();
+  const isHistoricalDate = selectedDate < today;
   await reconcileReservationStatuses();
   const reservations = await listReservationsForDay(selectedDate, isHistoricalDate);
   const machineStatus = await getMachineStatus();
@@ -46,7 +47,8 @@ export default async function ReservationsPage({ searchParams }: ReservationsPag
     (reservation) =>
       !isHistoricalDate &&
       reservation.apartmentId === session.apartmentId &&
-      ["reserved", "in_use", "late"].includes(reservation.status),
+      (["reserved", "in_use", "late"].includes(reservation.status) ||
+        (selectedDate === today && reservation.status === "unregistered")),
   );
   const busySlotsCount = slots.filter((slot) => slot.status === "busy").length;
   const freeSlotsCount = slots.filter((slot) => slot.status === "free").length;
@@ -107,7 +109,7 @@ export default async function ReservationsPage({ searchParams }: ReservationsPag
         <p className="mt-1 text-sm text-slate-600">{machineStatus.detail}</p>
         <p className="mt-3 text-xs text-slate-500">Para avisar sobre ocupação, término ou manutenção, acesse Regras.</p>
       </section>
-      <MyReservations reservations={myReservations} />
+      <MyReservations nowIso={new Date().toISOString()} reservations={myReservations} />
       <ReservationForm
         action={createReservationFromForm}
         defaultDate={selectedDate}
